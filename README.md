@@ -1,1 +1,0 @@
-Nepal Citizen Services (NCS) is a dummy app that simulates a secure login system with OTP verification. It features QR-based identity sharing, tax payment simulation, leadership and achievements views, and more. The app also includes an admin panel for managing users, viewing leaderboards, and overseeing system activities.
