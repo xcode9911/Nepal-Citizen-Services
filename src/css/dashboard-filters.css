@@ -1,0 +1,366 @@
+/* Enhanced Search and Filter Styles */
+
+/* Enhanced Search Box */
+.search-box.enhanced {
+  position: relative;
+  max-width: 500px;
+  margin-bottom: 16px;
+}
+
+.clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.clear-search:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+/* Filters Row */
+.filters-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  min-width: 160px;
+  transition: all 0.2s ease;
+}
+
+.filter-box:hover {
+  border-color: #d1d5db;
+  background-color: #f3f4f6;
+}
+
+.filter-box:focus-within {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.filter-box svg {
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.filter-select {
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 0.875rem;
+  color: #374151;
+  cursor: pointer;
+  width: 100%;
+  font-weight: 500;
+}
+
+.filter-select:focus {
+  outline: none;
+}
+
+/* Controls Layout */
+.dashboard-controls {
+  flex-direction: column;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.controls-left {
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.controls-right {
+  align-self: flex-end;
+}
+
+/* Filter Summary */
+.filter-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.user-count {
+  font-size: 0.9375rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.user-count strong {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.clear-filters {
+  padding: 8px 16px;
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-filters:hover {
+  background-color: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+/* Payment Status Badges */
+.status-paid {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-overdue {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.status-unpaid {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-partial {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+/* Table Amount Columns */
+.user-amount {
+  font-family: monospace;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #10b981;
+}
+
+.user-amount.pending {
+  color: #ef4444;
+}
+
+/* Active Filter Indicators */
+.filter-box.active {
+  background-color: #ecfdf5;
+  border-color: #10b981;
+}
+
+.filter-box.active svg {
+  color: #10b981;
+}
+
+.filter-box.active .filter-select {
+  color: #10b981;
+  font-weight: 600;
+}
+
+/* Search Suggestions (for future enhancement) */
+.search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.search-suggestion {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s ease;
+}
+
+.search-suggestion:hover {
+  background-color: #f9fafb;
+}
+
+.search-suggestion:last-child {
+  border-bottom: none;
+}
+
+/* Filter Tags (for active filters display) */
+.active-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.filter-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.filter-tag-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #059669;
+  padding: 2px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.filter-tag-remove:hover {
+  background-color: #059669;
+  color: white;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .filters-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .filter-box {
+    min-width: auto;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-controls {
+    gap: 16px;
+  }
+
+  .controls-left {
+    gap: 12px;
+  }
+
+  .filters-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .filter-box {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .filter-summary {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .clear-filters {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Hide some table columns on mobile */
+  .users-table th:nth-child(3),
+  .users-table td:nth-child(3),
+  .users-table th:nth-child(6),
+  .users-table td:nth-child(6),
+  .users-table th:nth-child(7),
+  .users-table td:nth-child(7),
+  .users-table th:nth-child(8),
+  .users-table td:nth-child(8) {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-box.enhanced {
+    max-width: none;
+  }
+
+  /* Show only essential columns on very small screens */
+  .users-table th:nth-child(5),
+  .users-table td:nth-child(5) {
+    display: none;
+  }
+}
+
+/* Loading States */
+.filter-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.filter-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #10b981;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: translateY(-50%) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .filter-box,
+  .clear-search,
+  .clear-filters {
+    transition: none;
+  }
+
+  .filter-loading::after {
+    animation: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .filter-box {
+    border-width: 2px;
+  }
+
+  .status-badge {
+    border: 1px solid currentColor;
+  }
+}
