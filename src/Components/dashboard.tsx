@@ -506,7 +506,7 @@ export default function Dashboard() {
       <header className="dashboard-header">
         <div className="header-content">
           <div className="header-left">
-            <h1 className="dashboard-title">User Management</h1>
+            <h1 className="dashboard-title">Nepal Citezen Service</h1>
             <p className="dashboard-subtitle">Manage citizen accounts and services</p>
           </div>
           <div className="header-right">
@@ -739,7 +739,7 @@ export default function Dashboard() {
                         <option value="Partial">Partial</option>
                       </select>
                     </div>
-
+                    
                     <div className="filter-box">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path
@@ -810,7 +810,25 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-
+<div className="stats-grid">
+                <div className="stat-card">
+                  <h3>Total Users</h3>
+                  <p className="stat-number">{mockUsers.length}</p>
+                </div>
+                <div className="stat-card">
+                  <h3>Active Users</h3>
+                  <p className="stat-number">{mockUsers.filter((u) => u.status === "Active").length}</p>
+                </div>
+                <div className="stat-card">
+                  <h3>Pending Users</h3>
+                  <p className="stat-number">{mockUsers.filter((u) => u.status === "Pending").length}</p>
+                </div>
+                <div className="stat-card">
+                  <h3>Inactive Users</h3>
+                  <p className="stat-number">{mockUsers.filter((u) => u.status === "Inactive").length}</p>
+                </div>
+              </div>
+              
               {/* Users Table */}
               <div className="table-container">
                 <table className="users-table">
@@ -872,25 +890,7 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {/* Stats Cards */}
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <h3>Total Users</h3>
-                  <p className="stat-number">{mockUsers.length}</p>
-                </div>
-                <div className="stat-card">
-                  <h3>Active Users</h3>
-                  <p className="stat-number">{mockUsers.filter((u) => u.status === "Active").length}</p>
-                </div>
-                <div className="stat-card">
-                  <h3>Pending Users</h3>
-                  <p className="stat-number">{mockUsers.filter((u) => u.status === "Pending").length}</p>
-                </div>
-                <div className="stat-card">
-                  <h3>Inactive Users</h3>
-                  <p className="stat-number">{mockUsers.filter((u) => u.status === "Inactive").length}</p>
-                </div>
-              </div>
+              
             </>
           )}
 
@@ -920,7 +920,25 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
-
+{/* Receipt Stats */}
+              <div className="stats-grid">
+                <div className="stat-card">
+                  <h3>Total Receipts</h3>
+                  <p className="stat-number">{receipts.length}</p>
+                </div>
+                <div className="stat-card">
+                  <h3>Pending</h3>
+                  <p className="stat-number">{receipts.filter((r) => r.status === "Pending").length}</p>
+                </div>
+                <div className="stat-card">
+                  <h3>Approved</h3>
+                  <p className="stat-number">{receipts.filter((r) => r.status === "Approved").length}</p>
+                </div>
+                <div className="stat-card">
+                  <h3>Rejected</h3>
+                  <p className="stat-number">{receipts.filter((r) => r.status === "Rejected").length}</p>
+                </div>
+              </div>
               {/* Receipts Grid */}
               <div className="receipts-grid">
                 {filteredReceipts.map((receipt) => (
@@ -1033,25 +1051,7 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Receipt Stats */}
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <h3>Total Receipts</h3>
-                  <p className="stat-number">{receipts.length}</p>
-                </div>
-                <div className="stat-card">
-                  <h3>Pending</h3>
-                  <p className="stat-number">{receipts.filter((r) => r.status === "Pending").length}</p>
-                </div>
-                <div className="stat-card">
-                  <h3>Approved</h3>
-                  <p className="stat-number">{receipts.filter((r) => r.status === "Approved").length}</p>
-                </div>
-                <div className="stat-card">
-                  <h3>Rejected</h3>
-                  <p className="stat-number">{receipts.filter((r) => r.status === "Rejected").length}</p>
-                </div>
-              </div>
+              
             </>
           )}
 
