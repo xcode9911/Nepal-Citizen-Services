@@ -4,17 +4,28 @@
   "description": "This is the backend of Nepal citizen services app and website.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node dist/app.js",
+    "build": "npx tsc",
+    "dev": "nodemon --watch src --ext ts --exec ts-node src/app.ts",
+    "watch": "tsc -w",
+    "prepare": "npm run build"
   },
   "author": "Himanshu Sharma",
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.10.1",
     "cors": "^2.8.5",
+    "dotenv": "^16.6.0",
     "express": "^5.1.0",
-    "nodemon": "^3.1.10"
+    "http": "^0.0.1-security"
   },
   "devDependencies": {
-    "prisma": "^6.10.1"
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.0.4",
+    "nodemon": "^3.1.10",
+    "prisma": "^6.10.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   }
 }
