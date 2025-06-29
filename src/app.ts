@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
+import userRouter from './routes/userRouter'; 
 
 dotenv.config();
 
@@ -15,6 +16,8 @@ app.get('/', (req, res) => {
   console.log(req.method);
   res.send('This is the backend server of Nepal Citizen Services, Whatsup visitor!!');
 });
+
+app.use('/api/users', userRouter); 
 
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {

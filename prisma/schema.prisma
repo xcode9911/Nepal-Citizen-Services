@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -12,26 +11,31 @@ model User {
   id             String   @id @default(uuid())
   name           String
   email          String   @unique
-  address        String
-  fatherName     String
-  motherName     String
+  address        String?
+  fatherName     String?
+  motherName     String?
   citizenshipNo  String   @unique
-  issueDate      DateTime
+  issueDate      DateTime?
+  dob            DateTime?        // ✅ Add this line
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  is_active      Boolean   @default(false)
 
-  // Relation
-  otps           OTP[]
+  // Relation to OTP
+  otps           otp[]    @relation("UserOtps")
 
   @@map("users")
 }
 
-model OTP {
+
+model otp {
   id         String   @id @default(uuid())
   code       String
   expiresAt  DateTime
   createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id])
+  
+  // Relation to User
+  user       User     @relation("UserOtps", fields: [userId], references: [id])
   userId     String
 
   @@index([userId])
