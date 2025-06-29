@@ -41,3 +41,14 @@ model otp {
   @@index([userId])
   @@map("otps")
 }
+
+model Admin {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String
+  permanentOtp String  // The manually added OTP (store as string)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("admins")
+}

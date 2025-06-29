@@ -21,7 +21,7 @@ const generateUniqueCitizenshipNo = async (): Promise<string> => {
   return generatedNo;
 };
 
-// Admin user creation handler
+// Create User
 export const createUser = async (req: Request, res: Response) => {
   const {
     name,
@@ -34,10 +34,8 @@ export const createUser = async (req: Request, res: Response) => {
   } = req.body;
 
   try {
-    // Auto-generate unique citizenship number
     const citizenshipNo = await generateUniqueCitizenshipNo();
 
-    // Create user in the database
     const user = await prisma.user.create({
       data: {
         name,
@@ -59,5 +57,62 @@ export const createUser = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Email already in use' });
     }
     return res.status(500).json({ message: 'Error creating user', error: (err as Error).message });
+  }
+};
+
+// Admin login
+export const adminLogin = async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  try {
+    const admin = await prisma.admin.findUnique({
+      where: { email },
+    });
+
+    if (!admin) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    if (password !== admin.password) {
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    return res.status(200).json({
+      message: 'Login successful. Please verify OTP.',
+      adminId: admin.id,
+    });
+  } catch (error) {
+    console.error('Admin login error:', error);
+    return res.status(500).json({
+      message: 'Server error during login',
+      error: (error as Error).message,
+    });
+  }
+};
+
+// Admin OTP verification
+export const verifyAdminOtp = async (req: Request, res: Response) => {
+  const { adminId, otp } = req.body;
+
+  try {
+    const admin = await prisma.admin.findUnique({
+      where: { id: adminId },
+    });
+
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    if (otp !== admin.permanentOtp) {
+      return res.status(401).json({ message: 'Invalid OTP' });
+    }
+
+    return res.status(200).json({ message: 'OTP verified successfully. Access granted.' });
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    return res.status(500).json({
+      message: 'Server error during OTP verification',
+      error: (error as Error).message,
+    });
   }
 };
