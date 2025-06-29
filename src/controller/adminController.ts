@@ -3,28 +3,39 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Utility to generate random 10-digit citizenship number
+const generateUniqueCitizenshipNo = async (): Promise<string> => {
+  let unique = false;
+  let generatedNo = '';
+
+  while (!unique) {
+    generatedNo = Math.floor(1000000000 + Math.random() * 9000000000).toString(); // 10-digit number
+
+    const existing = await prisma.user.findUnique({
+      where: { citizenshipNo: generatedNo },
+    });
+
+    if (!existing) unique = true;
+  }
+
+  return generatedNo;
+};
+
 // Admin user creation handler
 export const createUser = async (req: Request, res: Response) => {
   const {
     name,
-    citizenshipNo,
     email,
     address,
     fatherName,
     motherName,
-    dob,         
-    issueDate,   
+    dob,
+    issueDate,
   } = req.body;
 
   try {
-    // Check if citizenship number is already in use
-    const existingUser = await prisma.user.findUnique({
-      where: { citizenshipNo },
-    });
-
-    if (existingUser) {
-      return res.status(400).json({ message: 'Citizenship number already in use' });
-    }
+    // Auto-generate unique citizenship number
+    const citizenshipNo = await generateUniqueCitizenshipNo();
 
     // Create user in the database
     const user = await prisma.user.create({
@@ -35,9 +46,9 @@ export const createUser = async (req: Request, res: Response) => {
         fatherName,
         motherName,
         citizenshipNo,
-        dob: dob ? new Date(dob) : undefined,             // ✅ safely parse DateTime
+        dob: dob ? new Date(dob) : undefined,
         issueDate: issueDate ? new Date(issueDate) : undefined,
-        is_active: false, // Initially inactive
+        is_active: false,
       },
     });
 

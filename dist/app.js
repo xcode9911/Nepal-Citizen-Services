@@ -8,6 +8,7 @@ const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const http_1 = require("http");
 const userRouter_1 = __importDefault(require("./routes/userRouter"));
+const adminRoutes_1 = __importDefault(require("./routes/adminRoutes")); // Adjust path as necessary
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
@@ -18,6 +19,7 @@ app.get('/', (req, res) => {
     res.send('This is the backend server of Nepal Citizen Services, Whatsup visitor!!');
 });
 app.use('/api/users', userRouter_1.default);
+app.use('/api/admin', adminRoutes_1.default);
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
