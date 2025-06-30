@@ -150,3 +150,18 @@ export const verifyAdminOtp = async (req: Request, res: Response) => {
     });
   }
 };
+
+// Get all users without ordering
+export const getAllUsers = async (req: Request, res: Response) => {
+  // Example: Logging the request
+  console.log('Fetching users for:', req.body); // You can log any relevant info
+
+  try {
+    const users = await prisma.user.findMany(); // No orderBy
+
+    return res.status(200).json(users);
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    return res.status(500).json({ message: 'Error fetching users', error: (err as Error).message });
+  }
+};
