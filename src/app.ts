@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server as IOServer } from 'socket.io';
-import userRouter from './routes/userRouter';
+import UserRouter from './routes/userRouter';
 import adminRouter from './routes/adminRoutes';
 import { setupWebSocket } from './controller/userController';
 
@@ -32,7 +32,7 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // Routes
-app.use('/api/users', userRouter);
+app.use('/api/users', UserRouter(io));
 app.use('/api/admin', adminRouter);
 
 // Server listen
