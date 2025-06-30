@@ -17,7 +17,7 @@ model User {
   citizenshipNo  String   @unique
   issueDate      DateTime?
   dob            DateTime?       
-  panNumber      String?   
+  panNumber      String?  @unique
   panIssueDate   DateTime? 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
