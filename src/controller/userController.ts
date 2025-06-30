@@ -66,20 +66,14 @@ const sendNotification = async (userId: string, title: string, message: string, 
 };
 
 // Activation Handler
-export const activateUser = async (req: Request, res: Response, io: any) => {
+export const activateUser = (io: any) => async (req: Request, res: Response) => {
   const { email, citizenshipNo } = req.body;
-
   try {
-    const user = await prisma.user.findFirst({
-      where: { email, citizenshipNo },
-    });
-
+    const user = await prisma.user.findFirst({ where: { email, citizenshipNo } });
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
     }
-
     const otp = generateOTP();
-
     await prisma.otp.create({
       data: {
         code: otp,
@@ -87,10 +81,8 @@ export const activateUser = async (req: Request, res: Response, io: any) => {
         userId: user.id,
       },
     });
-
     await sendOTPEmail(email, otp);
     await sendNotification(user.id, "OTP Sent", "Your OTP for account activation has been sent to your email.", io);
-
     return res.status(200).json({ message: 'OTP sent to email for account activation.' });
   } catch (err) {
     console.error('Error sending OTP:', err);
@@ -99,18 +91,13 @@ export const activateUser = async (req: Request, res: Response, io: any) => {
 };
 
 // Activation OTP Verification
-export const verifyActivationOTP = async (req: Request, res: Response, io: any) => {
+export const verifyActivationOTP = (io: any) => async (req: Request, res: Response) => {
   const { email, citizenshipNo, otp } = req.body;
-
   try {
-    const user = await prisma.user.findFirst({
-      where: { email, citizenshipNo },
-    });
-
+    const user = await prisma.user.findFirst({ where: { email, citizenshipNo } });
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
     }
-
     const otpEntry = await prisma.otp.findFirst({
       where: {
         userId: user.id,
@@ -118,19 +105,12 @@ export const verifyActivationOTP = async (req: Request, res: Response, io: any) 
         expiresAt: { gte: new Date() },
       },
     });
-
     if (!otpEntry) {
       return res.status(400).json({ message: 'Invalid or expired OTP.' });
     }
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { is_active: true },
-    });
-
+    await prisma.user.update({ where: { id: user.id }, data: { is_active: true } });
     await prisma.otp.deleteMany({ where: { userId: user.id } });
     await sendNotification(user.id, "Account Activated", "Your account has been activated successfully.", io);
-
     return res.status(200).json({ message: 'User activated successfully.' });
   } catch (err) {
     console.error('Error verifying OTP:', err);
@@ -139,9 +119,8 @@ export const verifyActivationOTP = async (req: Request, res: Response, io: any) 
 };
 
 // OTP-based Login Request
-export const login = async (req: Request, res: Response, io: any) => {
+export const login = (io: any) => async (req: Request, res: Response) => {
   const { email, citizenshipNo } = req.body;
-
   try {
     const user = await prisma.user.findFirst({
       where: {
@@ -150,13 +129,10 @@ export const login = async (req: Request, res: Response, io: any) => {
         is_active: true,
       },
     });
-
     if (!user) {
       return res.status(401).json({ message: 'User not found or account not activated' });
     }
-
     const otp = generateOTP();
-
     await prisma.otp.create({
       data: {
         code: otp,
@@ -164,10 +140,8 @@ export const login = async (req: Request, res: Response, io: any) => {
         userId: user.id,
       },
     });
-
     await sendOTPEmail(email, otp);
     await sendNotification(user.id, "Login OTP Sent", "Your OTP for login has been sent to your email.", io);
-
     return res.status(200).json({ message: 'OTP sent to email for login.' });
   } catch (err) {
     console.error('Error logging in:', err);
@@ -176,9 +150,8 @@ export const login = async (req: Request, res: Response, io: any) => {
 };
 
 // OTP Verification for Login
-export const verifyLoginOTP = async (req: Request, res: Response, io: any) => {
+export const verifyLoginOTP = (io: any) => async (req: Request, res: Response) => {
   const { email, citizenshipNo, otp } = req.body;
-
   try {
     const user = await prisma.user.findFirst({
       where: {
@@ -187,11 +160,9 @@ export const verifyLoginOTP = async (req: Request, res: Response, io: any) => {
         is_active: true,
       },
     });
-
     if (!user) {
       return res.status(404).json({ message: 'User not found or not activated.' });
     }
-
     const otpEntry = await prisma.otp.findFirst({
       where: {
         userId: user.id,
@@ -199,18 +170,14 @@ export const verifyLoginOTP = async (req: Request, res: Response, io: any) => {
         expiresAt: { gte: new Date() },
       },
     });
-
     if (!otpEntry) {
       return res.status(400).json({ message: 'Invalid or expired OTP.' });
     }
-
     await prisma.otp.deleteMany({ where: { userId: user.id } });
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'default_secret', {
       expiresIn: '1h',
     });
-
     await sendNotification(user.id, "Login Successful", "You have logged in successfully.", io);
-
     return res.status(200).json({ message: 'Login successful', token });
   } catch (err) {
     console.error('Error verifying OTP:', err);
