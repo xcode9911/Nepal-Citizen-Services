@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Utility to generate random 10-digit citizenship number
+// Utility to generate a random 10-digit citizenship number
 const generateUniqueCitizenshipNo = async (): Promise<string> => {
   let unique = false;
   let generatedNo = '';
@@ -21,6 +21,31 @@ const generateUniqueCitizenshipNo = async (): Promise<string> => {
   return generatedNo;
 };
 
+// Utility to generate a Nepal-style PAN number: 7 letters + 5 digits
+const generateUniquePanNumberNepal = async (): Promise<string> => {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let pan = '';
+  let unique = false;
+
+  while (!unique) {
+    let prefix = '';
+    for (let i = 0; i < 7; i++) {
+      prefix += letters.charAt(Math.floor(Math.random() * letters.length));
+    }
+    const digits = Math.floor(10000 + Math.random() * 90000).toString();
+
+    pan = prefix + digits;
+
+    const existing = await prisma.user.findUnique({
+      where: { panNumber: pan },
+    });
+
+    if (!existing) unique = true;
+  }
+
+  return pan;
+};
+
 // Create User
 export const createUser = async (req: Request, res: Response) => {
   const {
@@ -31,10 +56,17 @@ export const createUser = async (req: Request, res: Response) => {
     motherName,
     dob,
     issueDate,
+    panIssueDate,
   } = req.body;
+
+  // Validate inputs
+  if (typeof name !== 'string' || typeof email !== 'string') {
+    return res.status(400).json({ message: 'Invalid input types' });
+  }
 
   try {
     const citizenshipNo = await generateUniqueCitizenshipNo();
+    const panNumber = await generateUniquePanNumberNepal();
 
     const user = await prisma.user.create({
       data: {
@@ -46,6 +78,8 @@ export const createUser = async (req: Request, res: Response) => {
         citizenshipNo,
         dob: dob ? new Date(dob) : undefined,
         issueDate: issueDate ? new Date(issueDate) : undefined,
+        panNumber,
+        panIssueDate: panIssueDate ? new Date(panIssueDate) : undefined,
         is_active: false,
       },
     });
@@ -54,7 +88,7 @@ export const createUser = async (req: Request, res: Response) => {
   } catch (err) {
     console.error('Error creating user:', err);
     if ((err as any)?.code === 'P2002') {
-      return res.status(400).json({ message: 'Email already in use' });
+      return res.status(400).json({ message: 'Email or PAN number already in use' });
     }
     return res.status(500).json({ message: 'Error creating user', error: (err as Error).message });
   }
