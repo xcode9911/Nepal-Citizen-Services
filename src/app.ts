@@ -3,12 +3,16 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import userRouter from './routes/userRouter'; 
-import adminRouter from './routes/adminRoutes'; // Adjust path as necessary
+import adminRouter from './routes/adminRoutes'; 
+import { setupWebSocket } from './controller/userController'; 
 
 dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
+
+// Initialize WebSocket
+setupWebSocket(httpServer); // Calling the function to set up WebSocket without storing the return value
 
 app.use(cors());
 app.use(express.json());

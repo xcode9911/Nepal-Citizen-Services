@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import { Server } from 'socket.io';
 
 dotenv.config();
 const prisma = new PrismaClient();
@@ -16,9 +17,22 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  logger: true,
-  debug: true,
 });
+
+// Set up Socket.IO
+const setupWebSocket = (server: any) => {
+  const io = new Server(server);
+
+  io.on("connection", (socket) => {
+    console.log("New client connected");
+
+    socket.on("disconnect", () => {
+      console.log("Client disconnected");
+    });
+  });
+
+  return io;
+};
 
 // Generate a 5-digit OTP
 const generateOTP = () => {
@@ -39,20 +53,29 @@ const sendOTPEmail = async (email: string, otp: string) => {
   }
 };
 
+// Send notification to user and emit real-time notification
+const sendNotification = async (userId: string, title: string, message: string, io: any) => {
+  await prisma.notification.create({
+    data: {
+      title,
+      message,
+      userId,
+    },
+  });
+  io.emit("notification", { userId, title, message });
+};
+
 // Activation Handler
-export const activateUser = async (req: Request, res: Response) => {
+export const activateUser = async (req: Request, res: Response, io: any) => {
   const { email, citizenshipNo } = req.body;
 
   try {
     const user = await prisma.user.findFirst({
-      where: {
-        email,
-        citizenshipNo,
-      },
+      where: { email, citizenshipNo },
     });
 
     if (!user) {
-      return res.status(404).json({ message: 'User with given email and citizenship number not found.' });
+      return res.status(404).json({ message: 'User not found.' });
     }
 
     const otp = generateOTP();
@@ -66,6 +89,7 @@ export const activateUser = async (req: Request, res: Response) => {
     });
 
     await sendOTPEmail(email, otp);
+    await sendNotification(user.id, "OTP Sent", "Your OTP for account activation has been sent to your email.", io);
 
     return res.status(200).json({ message: 'OTP sent to email for account activation.' });
   } catch (err) {
@@ -75,19 +99,16 @@ export const activateUser = async (req: Request, res: Response) => {
 };
 
 // Activation OTP Verification
-export const verifyActivationOTP = async (req: Request, res: Response) => {
+export const verifyActivationOTP = async (req: Request, res: Response, io: any) => {
   const { email, citizenshipNo, otp } = req.body;
 
   try {
     const user = await prisma.user.findFirst({
-      where: {
-        email,
-        citizenshipNo,
-      },
+      where: { email, citizenshipNo },
     });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found with provided email and citizenship number.' });
+      return res.status(404).json({ message: 'User not found.' });
     }
 
     const otpEntry = await prisma.otp.findFirst({
@@ -108,6 +129,7 @@ export const verifyActivationOTP = async (req: Request, res: Response) => {
     });
 
     await prisma.otp.deleteMany({ where: { userId: user.id } });
+    await sendNotification(user.id, "Account Activated", "Your account has been activated successfully.", io);
 
     return res.status(200).json({ message: 'User activated successfully.' });
   } catch (err) {
@@ -117,7 +139,7 @@ export const verifyActivationOTP = async (req: Request, res: Response) => {
 };
 
 // OTP-based Login Request
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response, io: any) => {
   const { email, citizenshipNo } = req.body;
 
   try {
@@ -144,6 +166,7 @@ export const login = async (req: Request, res: Response) => {
     });
 
     await sendOTPEmail(email, otp);
+    await sendNotification(user.id, "Login OTP Sent", "Your OTP for login has been sent to your email.", io);
 
     return res.status(200).json({ message: 'OTP sent to email for login.' });
   } catch (err) {
@@ -153,7 +176,7 @@ export const login = async (req: Request, res: Response) => {
 };
 
 // OTP Verification for Login
-export const verifyLoginOTP = async (req: Request, res: Response) => {
+export const verifyLoginOTP = async (req: Request, res: Response, io: any) => {
   const { email, citizenshipNo, otp } = req.body;
 
   try {
@@ -182,10 +205,11 @@ export const verifyLoginOTP = async (req: Request, res: Response) => {
     }
 
     await prisma.otp.deleteMany({ where: { userId: user.id } });
-
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'default_secret', {
       expiresIn: '1h',
     });
+
+    await sendNotification(user.id, "Login Successful", "You have logged in successfully.", io);
 
     return res.status(200).json({ message: 'Login successful', token });
   } catch (err) {
@@ -193,3 +217,22 @@ export const verifyLoginOTP = async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Error verifying OTP', error: (err as Error).message });
   }
 };
+
+// Notification Route
+export const getNotifications = async (req: Request, res: Response) => {
+  const { userId } = req.params;
+
+  try {
+    const notifications = await prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return res.status(200).json(notifications);
+  } catch (err) {
+    console.error('Error fetching notifications:', err);
+    return res.status(500).json({ message: 'Error fetching notifications', error: (err as Error).message });
+  }
+};
+
+export { setupWebSocket };
