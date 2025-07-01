@@ -144,23 +144,36 @@ export default function Login() {
 
     setIsLoading(true)
 
-    // Simulate API call
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      // Access the base URL from Vite's environment variables
+      const baseUrl = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${baseUrl}/admin-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
 
-      // Simulate successful login
-      if (formData.email === "admin@nepal.gov.np" && formData.password === "admin123") {
+      const data = await response.json();
+
+      if (response.ok) {
         console.log("Login successful, navigating to OTP...")
-        // Store email in sessionStorage for OTP page
+        // Store adminId and email in sessionStorage for OTP page
+        sessionStorage.setItem("adminId", data.adminId);
         sessionStorage.setItem("userEmail", formData.email)
         navigate("/otp")
       } else {
         setErrors({
           email: "",
-          password: "Invalid email or password",
+          password: data.message || "Invalid email or password",
         })
       }
     } catch (error) {
+      console.error('Login error:', error);
       setErrors({
         email: "",
         password: "Login failed. Please try again.",
