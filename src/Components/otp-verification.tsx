@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import "../css/otp-verification.css"
+import { jwtDecode } from "jwt-decode"
 
 export default function OtpVerification() {
   const navigate = useNavigate()
@@ -94,22 +95,46 @@ export default function OtpVerification() {
     setError("")
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      // Get JWT token and decode adminId
+      const token = localStorage.getItem("jwtToken");
+      if (!token) {
+        setError("Session expired. Please login again.");
+        return;
+      }
+      let adminId;
+      try {
+        const decoded: any = jwtDecode(token);
+        adminId = decoded.id;
+      } catch (decodeError) {
+        setError("Invalid session. Please login again.");
+        return;
+      }
 
-      // Simulate OTP verification
-      if (otpString === "123456") {
-        console.log("OTP verified, navigating to dashboard...")
-        navigate("/dashboard")
+      const baseUrl = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${baseUrl}/verify-otp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          adminId,
+          otp: otpString,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        navigate("/dashboard");
       } else {
-        setError("Invalid OTP. Please try again.")
-        setOtp(["", "", "", "", "", ""])
-        inputRefs.current[0]?.focus()
+        setError(data.message || "Invalid OTP. Please try again.");
+        setOtp(["", "", "", "", "", ""]);
+        inputRefs.current[0]?.focus();
       }
     } catch (error) {
-      setError("Verification failed. Please try again.")
+      setError("Verification failed. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -145,7 +170,7 @@ export default function OtpVerification() {
             {otp.map((digit, index) => (
               <input
                 key={index}
-                ref={(el) => (inputRefs.current[index] = el)}
+                ref={el => { inputRefs.current[index] = el }}
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]"
@@ -204,11 +229,7 @@ export default function OtpVerification() {
           </div>
         </form>
 
-        <div className="otp-footer">
-          <p className="demo-note">
-            <strong>Demo OTP:</strong> 123456
-          </p>
-        </div>
+       
       </div>
     </div>
   )

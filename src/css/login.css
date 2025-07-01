@@ -45,7 +45,11 @@
 }
 
 .nepal-logo {
-  filter: drop-shadow(0 4px 8px rgba(16, 185, 129, 0.2));
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #10b981;
+  width: 60px;
+  height: 60px;
 }
 
 .login-title-section {

@@ -27,8 +27,9 @@
 
 .header-left {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 16px;
 }
 
 .dashboard-title {

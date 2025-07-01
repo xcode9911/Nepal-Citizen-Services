@@ -3,6 +3,8 @@
 import { useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
 import "../css/dashboard.css"
+import Logo from "../assets/Logo.jpg"
+
 
 // Mock user data with payment status
 const mockUsers = [
@@ -10,7 +12,7 @@ const mockUsers = [
     id: 1,
     name: "Ram Bahadur Thapa",
     email: "ram.thapa@citizen.gov.np",
-    phone: "+977-9841234567",
+    citizenshipNumber: "1234567890",
     status: "Active",
     role: "Citizen",
     registeredDate: "2024-01-15",
@@ -25,7 +27,7 @@ const mockUsers = [
     id: 2,
     name: "Sita Kumari Sharma",
     email: "sita.sharma@citizen.gov.np",
-    phone: "+977-9851234568",
+    citizenshipNumber: "0987654321",
     status: "Active",
     role: "Citizen",
     registeredDate: "2024-02-10",
@@ -40,7 +42,7 @@ const mockUsers = [
     id: 3,
     name: "Hari Prasad Poudel",
     email: "hari.poudel@citizen.gov.np",
-    phone: "+977-9861234569",
+    citizenshipNumber: "1122334455",
     status: "Inactive",
     role: "Citizen",
     registeredDate: "2024-01-28",
@@ -55,7 +57,7 @@ const mockUsers = [
     id: 4,
     name: "Maya Devi Gurung",
     email: "maya.gurung@citizen.gov.np",
-    phone: "+977-9871234570",
+    citizenshipNumber: "5544332211",
     status: "Active",
     role: "Citizen",
     registeredDate: "2024-03-05",
@@ -70,7 +72,7 @@ const mockUsers = [
     id: 5,
     name: "Krishna Kumar Shrestha",
     email: "krishna.shrestha@citizen.gov.np",
-    phone: "+977-9881234571",
+    citizenshipNumber: "9988776655",
     status: "Pending",
     role: "Citizen",
     registeredDate: "2024-12-18",
@@ -85,7 +87,7 @@ const mockUsers = [
     id: 6,
     name: "Gita Rani Maharjan",
     email: "gita.maharjan@citizen.gov.np",
-    phone: "+977-9891234572",
+    citizenshipNumber: "4455667788",
     status: "Active",
     role: "Citizen",
     registeredDate: "2024-02-20",
@@ -325,7 +327,7 @@ export default function Dashboard() {
         (user) =>
           user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.phone.includes(searchTerm) ||
+          user.citizenshipNumber.includes(searchTerm) ||
           user.servicesUsed.some((service) => service.toLowerCase().includes(searchTerm.toLowerCase())),
       )
     }
@@ -506,8 +508,11 @@ export default function Dashboard() {
       <header className="dashboard-header">
         <div className="header-content">
           <div className="header-left">
-            <h1 className="dashboard-title">Nepal Citezen Service</h1>
-            <p className="dashboard-subtitle">Manage citizen accounts and services</p>
+            <img src={Logo} alt="Nepal Government Logo" className="nepal-logo" width={60} height={60} />
+            <div>
+              <h1 className="dashboard-title">Nepal Citezen Service</h1>
+              <p className="dashboard-subtitle">Manage citizen accounts and services</p>
+            </div>
           </div>
           <div className="header-right">
             <div className="user-info">
@@ -673,7 +678,7 @@ export default function Dashboard() {
                     <SearchIcon />
                     <input
                       type="text"
-                      placeholder="Search by name, email, phone, or service..."
+                      placeholder="Search by name, email, citizenship number, or service..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="search-input"
@@ -836,8 +841,7 @@ export default function Dashboard() {
                     <tr>
                       <th>Name</th>
                       <th>Email</th>
-                      <th>Phone</th>
-                      <th>Status</th>
+                      <th>Citizenship Number</th>
                       <th>Payment Status</th>
                       <th>Total Paid</th>
                       <th>Pending</th>
@@ -861,10 +865,7 @@ export default function Dashboard() {
                           </div>
                         </td>
                         <td className="user-email">{user.email}</td>
-                        <td className="user-phone">{user.phone}</td>
-                        <td>
-                          <span className={getStatusBadge(user.status)}>{user.status}</span>
-                        </td>
+                        <td className="user-citizenship-number">{user.citizenshipNumber}</td>
                         <td>
                           <span className={getPaymentStatusBadge(user.paymentStatus)}>{user.paymentStatus}</span>
                         </td>
@@ -1438,7 +1439,6 @@ export default function Dashboard() {
                     <div className="user-basic-info">
                       <h3>{selectedUser.name}</h3>
                       <p className="user-id">ID: #{selectedUser.id.toString().padStart(6, "0")}</p>
-                      <span className={getStatusBadge(selectedUser.status)}>{selectedUser.status}</span>
                     </div>
                   </div>
 
@@ -1448,8 +1448,8 @@ export default function Dashboard() {
                       <span>{selectedUser.email}</span>
                     </div>
                     <div className="detail-item">
-                      <label>Phone Number</label>
-                      <span>{selectedUser.phone}</span>
+                      <label>Citizenship Number</label>
+                      <span>{selectedUser.citizenshipNumber}</span>
                     </div>
                     <div className="detail-item">
                       <label>Role</label>

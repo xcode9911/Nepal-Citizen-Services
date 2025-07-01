@@ -4,39 +4,11 @@ import type React from "react"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import "../css/login.css"
+import Logo from "../assets/Logo.jpg"
 
 // Nepal Government Logo SVG Component
 const NepalLogo = () => (
-  <svg
-    width="60"
-    height="60"
-    viewBox="0 0 100 100"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className="nepal-logo"
-  >
-    {/* Outer Circle */}
-    <circle cx="50" cy="50" r="48" fill="#10b981" stroke="#059669" strokeWidth="2" />
-
-    {/* Inner Mountain Silhouette */}
-    <path d="M20 65 L35 45 L50 55 L65 40 L80 60 L80 75 L20 75 Z" fill="white" opacity="0.9" />
-
-    {/* Sun */}
-    <circle cx="70" cy="30" r="8" fill="#fbbf24" />
-    <path
-      d="M70 18 L72 22 L76 20 L74 24 L78 26 L74 28 L76 32 L72 30 L70 34 L68 30 L64 32 L66 28 L62 26 L66 24 L64 20 L68 22 Z"
-      fill="#fbbf24"
-      opacity="0.8"
-    />
-
-    {/* Nepal Text Curve */}
-    <path id="textcircle" d="M 20 50 A 30 30 0 0 1 80 50" fill="none" stroke="none" />
-    <text fontSize="10" fill="white" fontWeight="600">
-      <textPath href="#textcircle" startOffset="25%">
-        NEPAL GOV
-      </textPath>
-    </text>
-  </svg>
+  <img src={Logo} alt="Nepal Government Logo" className="nepal-logo" width={60} height={60} />
 )
 
 // Eye Icon for password visibility toggle
@@ -260,25 +232,10 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Demo Credentials */}
-        <div className="login-footer">
-          <div className="demo-credentials">
-            <p className="demo-title">Demo Credentials:</p>
-            <div className="demo-info">
-              <p>
-                <strong>Email:</strong> admin@nepal.gov.np
-              </p>
-              <p>
-                <strong>Password:</strong> admin123
-              </p>
-            </div>
-          </div>
-
-          {/* Back to Hero Button */}
-          <button onClick={() => navigate("/hero")} className="back-to-hero-button" disabled={isLoading}>
-            ← Back to Home
-          </button>
-        </div>
+        {/* Back to Hero Button */}
+        <button onClick={() => navigate("/hero")} className="back-to-hero-button" disabled={isLoading}>
+          ← Back to Home
+        </button>
       </div>
     </div>
   )
