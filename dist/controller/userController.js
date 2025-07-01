@@ -12,11 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyLoginOTP = exports.login = exports.verifyActivationOTP = exports.activateUser = void 0;
+exports.setupWebSocket = exports.updateSalary = exports.getNotifications = exports.verifyLoginOTP = exports.login = exports.verifyActivationOTP = exports.activateUser = void 0;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const client_1 = require("@prisma/client");
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const socket_io_1 = require("socket.io");
 dotenv_1.default.config();
 const prisma = new client_1.PrismaClient();
 // Nodemailer setup
@@ -28,9 +29,19 @@ const transporter = nodemailer_1.default.createTransport({
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
     },
-    logger: true,
-    debug: true,
 });
+// Set up Socket.IO
+const setupWebSocket = (server) => {
+    const io = new socket_io_1.Server(server);
+    io.on("connection", (socket) => {
+        console.log("New client connected");
+        socket.on("disconnect", () => {
+            console.log("Client disconnected");
+        });
+    });
+    return io;
+};
+exports.setupWebSocket = setupWebSocket;
 // Generate a 5-digit OTP
 const generateOTP = () => {
     return Math.floor(10000 + Math.random() * 90000).toString();
@@ -49,18 +60,24 @@ const sendOTPEmail = (email, otp) => __awaiter(void 0, void 0, void 0, function*
         console.error("Error sending email:", error);
     }
 });
+// Send notification to user and emit real-time notification
+const sendNotification = (userId, title, message, io) => __awaiter(void 0, void 0, void 0, function* () {
+    yield prisma.notification.create({
+        data: {
+            title,
+            message,
+            userId,
+        },
+    });
+    io.emit("notification", { userId, title, message });
+});
 // Activation Handler
-const activateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const activateUser = (io) => (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, citizenshipNo } = req.body;
     try {
-        const user = yield prisma.user.findFirst({
-            where: {
-                email,
-                citizenshipNo,
-            },
-        });
+        const user = yield prisma.user.findFirst({ where: { email, citizenshipNo } });
         if (!user) {
-            return res.status(404).json({ message: 'User with given email and citizenship number not found.' });
+            return res.status(404).json({ message: 'User not found.' });
         }
         const otp = generateOTP();
         yield prisma.otp.create({
@@ -71,6 +88,7 @@ const activateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             },
         });
         yield sendOTPEmail(email, otp);
+        yield sendNotification(user.id, "OTP Sent", "Your OTP for account activation has been sent to your email.", io);
         return res.status(200).json({ message: 'OTP sent to email for account activation.' });
     }
     catch (err) {
@@ -80,17 +98,12 @@ const activateUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
 });
 exports.activateUser = activateUser;
 // Activation OTP Verification
-const verifyActivationOTP = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const verifyActivationOTP = (io) => (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, citizenshipNo, otp } = req.body;
     try {
-        const user = yield prisma.user.findFirst({
-            where: {
-                email,
-                citizenshipNo,
-            },
-        });
+        const user = yield prisma.user.findFirst({ where: { email, citizenshipNo } });
         if (!user) {
-            return res.status(404).json({ message: 'User not found with provided email and citizenship number.' });
+            return res.status(404).json({ message: 'User not found.' });
         }
         const otpEntry = yield prisma.otp.findFirst({
             where: {
@@ -102,11 +115,9 @@ const verifyActivationOTP = (req, res) => __awaiter(void 0, void 0, void 0, func
         if (!otpEntry) {
             return res.status(400).json({ message: 'Invalid or expired OTP.' });
         }
-        yield prisma.user.update({
-            where: { id: user.id },
-            data: { is_active: true },
-        });
+        yield prisma.user.update({ where: { id: user.id }, data: { is_active: true } });
         yield prisma.otp.deleteMany({ where: { userId: user.id } });
+        yield sendNotification(user.id, "Account Activated", "Your account has been activated successfully.", io);
         return res.status(200).json({ message: 'User activated successfully.' });
     }
     catch (err) {
@@ -116,7 +127,7 @@ const verifyActivationOTP = (req, res) => __awaiter(void 0, void 0, void 0, func
 });
 exports.verifyActivationOTP = verifyActivationOTP;
 // OTP-based Login Request
-const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const login = (io) => (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, citizenshipNo } = req.body;
     try {
         const user = yield prisma.user.findFirst({
@@ -138,6 +149,7 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             },
         });
         yield sendOTPEmail(email, otp);
+        yield sendNotification(user.id, "Login OTP Sent", "Your OTP for login has been sent to your email.", io);
         return res.status(200).json({ message: 'OTP sent to email for login.' });
     }
     catch (err) {
@@ -147,7 +159,7 @@ const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.login = login;
 // OTP Verification for Login
-const verifyLoginOTP = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const verifyLoginOTP = (io) => (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, citizenshipNo, otp } = req.body;
     try {
         const user = yield prisma.user.findFirst({
@@ -174,6 +186,7 @@ const verifyLoginOTP = (req, res) => __awaiter(void 0, void 0, void 0, function*
         const token = jsonwebtoken_1.default.sign({ userId: user.id }, process.env.JWT_SECRET || 'default_secret', {
             expiresIn: '1h',
         });
+        yield sendNotification(user.id, "Login Successful", "You have logged in successfully.", io);
         return res.status(200).json({ message: 'Login successful', token });
     }
     catch (err) {
@@ -182,4 +195,38 @@ const verifyLoginOTP = (req, res) => __awaiter(void 0, void 0, void 0, function*
     }
 });
 exports.verifyLoginOTP = verifyLoginOTP;
+// Notification Route
+const getNotifications = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { userId } = req.params;
+    try {
+        const notifications = yield prisma.notification.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+        });
+        return res.status(200).json(notifications);
+    }
+    catch (err) {
+        console.error('Error fetching notifications:', err);
+        return res.status(500).json({ message: 'Error fetching notifications', error: err.message });
+    }
+});
+exports.getNotifications = getNotifications;
+// Update user salary
+const updateSalary = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { userId, salary } = req.body;
+    if (!userId || typeof salary !== 'number' || salary < 0) {
+        return res.status(400).json({ message: 'Invalid userId or salary' });
+    }
+    try {
+        const user = yield prisma.user.update({
+            where: { id: userId },
+            data: { salary },
+        });
+        return res.status(200).json({ message: 'Salary updated', user });
+    }
+    catch (err) {
+        return res.status(500).json({ message: 'Error updating salary', error: err.message });
+    }
+});
+exports.updateSalary = updateSalary;
 //# sourceMappingURL=userController.js.map

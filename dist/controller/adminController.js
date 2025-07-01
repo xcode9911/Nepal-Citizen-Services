@@ -9,32 +9,53 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createUser = void 0;
+exports.getAllUsers = exports.verifyAdminOtp = exports.adminLogin = exports.createUser = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
-// Helper to generate a unique 10-digit citizenship number
+// Utility to generate a random 10-digit citizenship number
 const generateUniqueCitizenshipNo = () => __awaiter(void 0, void 0, void 0, function* () {
-    let retries = 0;
-    const maxRetries = 10;
-    while (retries < maxRetries) {
-        const randomNum = Math.floor(1000000000 + Math.random() * 9000000000);
-        const generatedNo = randomNum.toString(); // always a string
-        // ✅ Use findFirst (NOT findUnique) to avoid errors with non-unique filters
-        const existingUser = yield prisma.user.findFirst({
+    let unique = false;
+    let generatedNo = '';
+    while (!unique) {
+        generatedNo = Math.floor(1000000000 + Math.random() * 9000000000).toString(); // 10-digit number
+        const existing = yield prisma.user.findUnique({
             where: { citizenshipNo: generatedNo },
         });
-        if (!existingUser) {
-            return generatedNo;
-        }
-        retries++;
+        if (!existing)
+            unique = true;
     }
-    throw new Error('Failed to generate unique citizenship number after multiple attempts.');
+    return generatedNo;
 });
-// Admin user creation handler
+// Utility to generate a Nepal-style PAN number: 7 letters + 5 digits
+const generateUniquePanNumberNepal = () => __awaiter(void 0, void 0, void 0, function* () {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let pan = '';
+    let unique = false;
+    while (!unique) {
+        let prefix = '';
+        for (let i = 0; i < 7; i++) {
+            prefix += letters.charAt(Math.floor(Math.random() * letters.length));
+        }
+        const digits = Math.floor(10000 + Math.random() * 90000).toString();
+        pan = prefix + digits;
+        const existing = yield prisma.user.findUnique({
+            where: { panNumber: pan },
+        });
+        if (!existing)
+            unique = true;
+    }
+    return pan;
+});
+// Create User
 const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { name, email, address, fatherName, motherName, dob, issueDate, } = req.body;
+    const { name, email, address, fatherName, motherName, dob, issueDate, panIssueDate, } = req.body;
+    // Validate inputs
+    if (typeof name !== 'string' || typeof email !== 'string') {
+        return res.status(400).json({ message: 'Invalid input types' });
+    }
     try {
         const citizenshipNo = yield generateUniqueCitizenshipNo();
+        const panNumber = yield generateUniquePanNumberNepal();
         const user = yield prisma.user.create({
             data: {
                 name,
@@ -45,24 +66,85 @@ const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                 citizenshipNo,
                 dob: dob ? new Date(dob) : undefined,
                 issueDate: issueDate ? new Date(issueDate) : undefined,
+                panNumber,
+                panIssueDate: panIssueDate ? new Date(panIssueDate) : undefined,
                 is_active: false,
             },
         });
-        return res.status(201).json({
-            message: 'User created successfully.',
-            user,
-        });
+        return res.status(201).json({ message: 'User created successfully.', user });
     }
     catch (err) {
         console.error('Error creating user:', err);
         if ((err === null || err === void 0 ? void 0 : err.code) === 'P2002') {
-            return res.status(400).json({ message: 'Email or citizenship number already in use' });
+            return res.status(400).json({ message: 'Email or PAN number already in use' });
         }
-        return res.status(500).json({
-            message: 'Error creating user',
-            error: err.message,
-        });
+        return res.status(500).json({ message: 'Error creating user', error: err.message });
     }
 });
 exports.createUser = createUser;
+// Admin login
+const adminLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email, password } = req.body;
+    try {
+        const admin = yield prisma.admin.findUnique({
+            where: { email },
+        });
+        if (!admin) {
+            return res.status(401).json({ message: 'Invalid email or password' });
+        }
+        if (password !== admin.password) {
+            return res.status(401).json({ message: 'Invalid email or password' });
+        }
+        return res.status(200).json({
+            message: 'Login successful. Please verify OTP.',
+            adminId: admin.id,
+        });
+    }
+    catch (error) {
+        console.error('Admin login error:', error);
+        return res.status(500).json({
+            message: 'Server error during login',
+            error: error.message,
+        });
+    }
+});
+exports.adminLogin = adminLogin;
+// Admin OTP verification
+const verifyAdminOtp = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { adminId, otp } = req.body;
+    try {
+        const admin = yield prisma.admin.findUnique({
+            where: { id: adminId },
+        });
+        if (!admin) {
+            return res.status(404).json({ message: 'Admin not found' });
+        }
+        if (otp !== admin.permanentOtp) {
+            return res.status(401).json({ message: 'Invalid OTP' });
+        }
+        return res.status(200).json({ message: 'OTP verified successfully. Access granted.' });
+    }
+    catch (error) {
+        console.error('OTP verification error:', error);
+        return res.status(500).json({
+            message: 'Server error during OTP verification',
+            error: error.message,
+        });
+    }
+});
+exports.verifyAdminOtp = verifyAdminOtp;
+// Get all users without ordering
+const getAllUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    // Example: Logging the request
+    console.log('Fetching users for:', req.body); // You can log any relevant info
+    try {
+        const users = yield prisma.user.findMany(); // No orderBy
+        return res.status(200).json(users);
+    }
+    catch (err) {
+        console.error('Error fetching users:', err);
+        return res.status(500).json({ message: 'Error fetching users', error: err.message });
+    }
+});
+exports.getAllUsers = getAllUsers;
 //# sourceMappingURL=adminController.js.map

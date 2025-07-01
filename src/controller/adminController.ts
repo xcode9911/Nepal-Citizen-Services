@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
+dotenv.config();
 const prisma = new PrismaClient();
 
 // Utility to generate a random 10-digit citizenship number
@@ -9,12 +12,10 @@ const generateUniqueCitizenshipNo = async (): Promise<string> => {
   let generatedNo = '';
 
   while (!unique) {
-    generatedNo = Math.floor(1000000000 + Math.random() * 9000000000).toString(); // 10-digit number
-
+    generatedNo = Math.floor(1000000000 + Math.random() * 9000000000).toString();
     const existing = await prisma.user.findUnique({
       where: { citizenshipNo: generatedNo },
     });
-
     if (!existing) unique = true;
   }
 
@@ -33,13 +34,11 @@ const generateUniquePanNumberNepal = async (): Promise<string> => {
       prefix += letters.charAt(Math.floor(Math.random() * letters.length));
     }
     const digits = Math.floor(10000 + Math.random() * 90000).toString();
-
     pan = prefix + digits;
 
     const existing = await prisma.user.findUnique({
       where: { panNumber: pan },
     });
-
     if (!existing) unique = true;
   }
 
@@ -59,7 +58,6 @@ export const createUser = async (req: Request, res: Response) => {
     panIssueDate,
   } = req.body;
 
-  // Validate inputs
   if (typeof name !== 'string' || typeof email !== 'string') {
     return res.status(400).json({ message: 'Invalid input types' });
   }
@@ -94,7 +92,7 @@ export const createUser = async (req: Request, res: Response) => {
   }
 };
 
-// Admin login
+// Admin login with JWT
 export const adminLogin = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
@@ -103,17 +101,25 @@ export const adminLogin = async (req: Request, res: Response) => {
       where: { email },
     });
 
-    if (!admin) {
+    if (!admin || password !== admin.password) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    if (password !== admin.password) {
-      return res.status(401).json({ message: 'Invalid email or password' });
-    }
+    // Create JWT payload
+    const payload = {
+      id: admin.id,
+      email: admin.email,
+      role: 'admin',
+    };
+
+    const token = jwt.sign(payload, process.env.JWT_SECRET as string, {
+      expiresIn: '2h', // Token expires in 2 hours
+    });
 
     return res.status(200).json({
       message: 'Login successful. Please verify OTP.',
       adminId: admin.id,
+      token,
     });
   } catch (error) {
     console.error('Admin login error:', error);
@@ -153,12 +159,10 @@ export const verifyAdminOtp = async (req: Request, res: Response) => {
 
 // Get all users without ordering
 export const getAllUsers = async (req: Request, res: Response) => {
-  // Example: Logging the request
-  console.log('Fetching users for:', req.body); // You can log any relevant info
+  console.log('Fetching users for:', req.body);
 
   try {
-    const users = await prisma.user.findMany(); // No orderBy
-
+    const users = await prisma.user.findMany();
     return res.status(200).json(users);
   } catch (err) {
     console.error('Error fetching users:', err);
