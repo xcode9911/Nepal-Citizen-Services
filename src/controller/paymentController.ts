@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import prisma from '../models';
 import { PaymentStatus } from '@prisma/client';
 import axios from 'axios';
-import { parseStringPromise } from 'xml2js';
+import crypto from 'crypto';
 
 function calculateTax(salary: number): number {
   if (salary <= 500000) {
@@ -18,22 +18,29 @@ function calculateTax(salary: number): number {
   }
 }
 
-async function verifyEsewaPayment({ amt, pid, rid }: { amt: number; pid: string; rid: string }) {
-  const merchantCode = process.env.ESEWA_MERCHANT_CODE;
-  if (!merchantCode) throw new Error('ESEWA_MERCHANT_CODE not set in environment');
-  const params = new URLSearchParams();
-  params.append('amt', amt.toString());
-  params.append('rid', rid); // reference id from eSewa
-  params.append('pid', pid); // product id (your internal payment id)
-  params.append('scd', merchantCode);
+function generateEsewaSignature({ total_amount, transaction_uuid, product_code }: { total_amount: string, transaction_uuid: string, product_code: string }) {
+  const secret = process.env.ESEWA_SECRET;
+  if (!secret) throw new Error('ESEWA_SECRET not set in environment');
+  const message = `total_amount=${total_amount},transaction_uuid=${transaction_uuid},product_code=${product_code}`;
+  const hash = crypto.createHmac('sha256', secret).update(message).digest('base64');
+  return hash;
+}
+
+async function verifyEsewaPayment({ total_amount, transaction_uuid, product_code, signature }: { total_amount: string, transaction_uuid: string, product_code: string, signature: string }) {
+  const params = {
+    total_amount,
+    transaction_uuid,
+    product_code,
+    signature,
+    signed_field_names: 'total_amount,transaction_uuid,product_code',
+  };
   const response = await axios.post(
-    'https://uat.esewa.com.np/epay/transrec',
+    'https://rc-epay.esewa.com.np/api/epay/transaction/status/',
     params,
-    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    { headers: { 'Content-Type': 'application/json' } }
   );
-  const result = await parseStringPromise(response.data);
-  // eSewa returns <response_code>Success</response_code> for success
-  return result.response.response_code[0] === 'Success';
+  // eSewa returns JSON with status: 'COMPLETE' for success
+  return response.data.status === 'COMPLETE';
 }
 
 // User: Create a payment (amount auto-calculated from salary)
@@ -45,6 +52,9 @@ export const createPayment = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'User not found or salary not set' });
     }
     const amount = calculateTax(user.salary); // Payable amount is tax based on salary
+    const product_code = process.env.ESEWA_MERCHANT_CODE || 'EPAYTEST';
+    const total_amount = amount.toFixed(2);
+    const transaction_uuid = esewaRefId;
     // Create payment with PENDING status
     const payment = await prisma.payment.create({
       data: {
@@ -54,10 +64,17 @@ export const createPayment = async (req: Request, res: Response) => {
         status: PaymentStatus.PENDING,
       },
     });
+    // Generate signature
+    let signature = '';
+    try {
+      signature = generateEsewaSignature({ total_amount, transaction_uuid, product_code });
+    } catch (e) {
+      return res.status(500).json({ message: 'Error generating signature', error: (e as Error).message });
+    }
     // Verify with eSewa
     let verified = false;
     try {
-      verified = await verifyEsewaPayment({ amt: amount, pid: payment.id, rid: esewaRefId });
+      verified = await verifyEsewaPayment({ total_amount, transaction_uuid, product_code, signature });
     } catch (e) {
       // Verification failed (network or other error)
       return res.status(201).json({ payment, verification: 'failed', error: (e as Error).message });

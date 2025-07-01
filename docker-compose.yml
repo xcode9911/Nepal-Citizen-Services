@@ -5,13 +5,13 @@ services:
     container_name: ncs-db
     image: postgres
     ports:
-      - 5433:5432
+      - 5432:5432
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: postgres
+      POSTGRES_USER: hemy99
       POSTGRES_DB: ncs
-      POSTGRES_PASSWORD: "1234"
+      POSTGRES_PASSWORD: "admin123"
 
 
 volumes:
