@@ -202,4 +202,21 @@ export const getNotifications = async (req: Request, res: Response) => {
   }
 };
 
+// Update user salary
+export const updateSalary = async (req: Request, res: Response) => {
+  const { userId, salary } = req.body;
+  if (!userId || typeof salary !== 'number' || salary < 0) {
+    return res.status(400).json({ message: 'Invalid userId or salary' });
+  }
+  try {
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { salary },
+    });
+    return res.status(200).json({ message: 'Salary updated', user });
+  } catch (err) {
+    return res.status(500).json({ message: 'Error updating salary', error: (err as Error).message });
+  }
+};
+
 export { setupWebSocket };

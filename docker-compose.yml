@@ -9,9 +9,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: postgres
+      POSTGRES_USER: hemy99
       POSTGRES_DB: ncs
-      POSTGRES_PASSWORD: "1234"
+      POSTGRES_PASSWORD: "admin123"
 
 
 volumes:

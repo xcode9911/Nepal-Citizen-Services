@@ -22,10 +22,12 @@ model User {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   is_active      Boolean   @default(false)
+  salary         Float?   // User's salary, editable and nullable
 
   // Relation to OTP
   otps           otp[]    @relation("UserOtps")
   notifications  Notification[]
+  payments       Payment[] // Payments made by the user
 
   @@map("users")
 }
@@ -52,6 +54,8 @@ model Admin {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  paymentsVerified Payment[] @relation("AdminVerifiedPayments")
+
   @@map("admins")
 }
 
@@ -68,5 +72,30 @@ model Notification {
   userId      String
 
   @@map("notifications")
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  amount          Float    // Payable amount, calculated from user's salary
+  esewaRefId      String   // eSewa transaction reference ID
+  status          PaymentStatus @default(PENDING)
+  createdAt       DateTime @default(now())
+  verifiedAt      DateTime?
+
+  // Relations
+  user            User     @relation(fields: [userId], references: [id])
+  userId          String
+  verifiedBy      Admin?   @relation("AdminVerifiedPayments", fields: [adminId], references: [id])
+  adminId         String?
+
+  @@index([userId])
+  @@index([adminId])
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
 }
 

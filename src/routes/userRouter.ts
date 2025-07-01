@@ -1,5 +1,5 @@
 import express from 'express';
-import { activateUser, verifyActivationOTP, login, verifyLoginOTP, getNotifications } from '../controller/userController';
+import { activateUser, verifyActivationOTP, login, verifyLoginOTP, getNotifications, updateSalary } from '../controller/userController';
 import catchAsync from '../utils/catchAsync';
 
 const UserRouter = (io: any) => {
@@ -9,6 +9,7 @@ const UserRouter = (io: any) => {
   router.post('/login', catchAsync(login(io)));
   router.post('/verify-login-otp', catchAsync(verifyLoginOTP(io)));
   router.get('/notifications/:userId', catchAsync(getNotifications));
+  router.patch('/salary', catchAsync(updateSalary));
   return router;
 };
 

@@ -6,6 +6,7 @@ import { Server as IOServer } from 'socket.io';
 import UserRouter from './routes/userRouter';
 import adminRouter from './routes/adminRoutes';
 import { setupWebSocket } from './controller/userController';
+import paymentRoutes from './routes/paymentRoutes';
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.get('/', (req: Request, res: Response) => {
 // Routes
 app.use('/api/users', UserRouter(io));
 app.use('/api/admin', adminRouter);
+app.use('/api/payments', paymentRoutes);
 
 // Server listen
 const PORT = process.env.PORT || 3000;
