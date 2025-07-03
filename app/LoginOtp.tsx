@@ -1,4 +1,4 @@
-import { useLocalSearchParams, router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
@@ -14,28 +14,29 @@ import {
   Platform,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
-// Scaling functions
 const scale = (size: number) => (width / 375) * size;
 const verticalScale = (size: number) => (height / 812) * size;
-const moderateScale = (size: number, factor = 0.5) =>
-  size + (scale(size) - size) * factor;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
 
 export default function OTP() {
-  const { email, citizenshipNo } = useLocalSearchParams<{ email: string; citizenshipNo: string }>();
   const [otp, setOtp] = useState(['', '', '', '', '']);
   const [timer, setTimer] = useState(60);
+  const [loading, setLoading] = useState(false);
   const inputRefs = useRef<TextInput[]>([]);
+
+  const { email, citizenshipNo } = useLocalSearchParams();
 
   useEffect(() => {
     const interval = setInterval(() => {
       setTimer((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -43,7 +44,6 @@ export default function OTP() {
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-
     if (value && index < 4) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -57,40 +57,39 @@ export default function OTP() {
 
   const handleVerifyOtp = async () => {
     const otpCode = otp.join('');
-    if (otpCode.length !== 5) {
+    if (otpCode.length < 5) {
       Alert.alert('Incomplete OTP', 'Please enter all 5 digits of the OTP.');
       return;
     }
 
+    setLoading(true);
+
     try {
-      const response = await fetch('http://localhost:8000/api/users/verify-activation-otp', {
+      const response = await fetch('http://localhost:8000/api/users/verify-login-otp', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          citizenshipNo,
-          otp: otpCode,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, citizenshipNo, otp: otpCode }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        Alert.alert('Verification Failed', data.message || 'Invalid or expired OTP.');
+        Alert.alert('Verification Failed', data.message || 'Invalid OTP.');
         return;
       }
 
-      Alert.alert('Success', 'Account activated successfully!', [
+      await AsyncStorage.setItem('authToken', data.token);
+      Alert.alert('Success', 'Login successful.', [
         {
           text: 'Continue',
-          onPress: () => router.push('/login'),
+          onPress: () => router.push('/dashboard'),
         },
       ]);
-    } catch (error) {
-      console.error('OTP Verification Error:', error);
-      Alert.alert('Error', 'Could not verify OTP. Please try again.');
+    } catch (err) {
+      console.error('Error verifying OTP:', err);
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -99,8 +98,7 @@ export default function OTP() {
       setTimer(60);
       setOtp(['', '', '', '', '']);
       inputRefs.current[0]?.focus();
-      // Trigger resend logic here if implemented on backend
-      Alert.alert('OTP Sent', 'A new OTP has been sent to your email.');
+      Alert.alert('OTP Resent', 'A new OTP has been sent to your email.');
     }
   };
 
@@ -121,8 +119,6 @@ export default function OTP() {
         backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
         translucent={false}
       />
-
-      {/* Back Button */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
           <Ionicons name="arrow-back" size={moderateScale(24)} color="#059669" />
@@ -133,11 +129,7 @@ export default function OTP() {
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
+        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.content}>
             <View style={styles.logoContainer}>
               <Image
@@ -149,12 +141,10 @@ export default function OTP() {
 
             <Text style={styles.titleMain}>Nepal Citizen</Text>
             <Text style={styles.titleSub}>Services</Text>
-            <Text style={styles.heading}>Verify OTP</Text>
-            <Text style={styles.subtitle}>
-              Enter the 5-digit code sent to{'\n'}your registered email
-            </Text>
 
-            {/* OTP Inputs */}
+            <Text style={styles.heading}>Verify OTP</Text>
+            <Text style={styles.subtitle}>Enter the 5-digit code sent to your registered email</Text>
+
             <View style={styles.otpContainer}>
               {otp.map((digit, index) => (
                 <TextInput
@@ -162,10 +152,7 @@ export default function OTP() {
                   ref={(ref) => {
                     if (ref) inputRefs.current[index] = ref;
                   }}
-                  style={[
-                    styles.otpInput,
-                    digit ? styles.otpInputFilled : null,
-                  ]}
+                  style={[styles.otpInput, digit ? styles.otpInputFilled : null]}
                   value={digit}
                   onChangeText={(value) => handleOtpChange(value, index)}
                   onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
@@ -177,7 +164,6 @@ export default function OTP() {
               ))}
             </View>
 
-            {/* Timer */}
             <View style={styles.timerContainer}>
               {timer > 0 ? (
                 <Text style={styles.timerText}>Resend OTP in {timer}s</Text>
@@ -188,36 +174,39 @@ export default function OTP() {
               )}
             </View>
 
-            {/* Verify Button */}
             <TouchableOpacity
               style={[
                 styles.verifyButton,
-                !isOtpComplete && styles.verifyButtonDisabled,
+                (!isOtpComplete || loading) && styles.verifyButtonDisabled,
               ]}
               onPress={handleVerifyOtp}
-              disabled={!isOtpComplete}
+              disabled={!isOtpComplete || loading}
             >
               <View style={styles.buttonContent}>
-                <Text
-                  style={[
-                    styles.verifyButtonText,
-                    !isOtpComplete && styles.verifyButtonTextDisabled,
-                  ]}
-                >
-                  Verify OTP
-                </Text>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={moderateScale(20)}
-                  color={isOtpComplete ? '#ffffff' : '#9ca3af'}
-                  style={styles.verifyIcon}
-                />
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <>
+                    <Text
+                      style={[
+                        styles.verifyButtonText,
+                        (!isOtpComplete || loading) && styles.verifyButtonTextDisabled,
+                      ]}
+                    >
+                      Verify OTP
+                    </Text>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={moderateScale(20)}
+                      color={isOtpComplete && !loading ? '#ffffff' : '#9ca3af'}
+                      style={styles.verifyIcon}
+                    />
+                  </>
+                )}
               </View>
             </TouchableOpacity>
 
-            <Text style={styles.helpText}>
-              Didn't receive the code? Check your spam folder.
-            </Text>
+            <Text style={styles.helpText}>Didn't receive the code? Check your spam folder</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -229,10 +218,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff' },
   header: {
     position: 'absolute',
-    top:
-      Platform.OS === 'android'
-        ? StatusBar.currentHeight || verticalScale(10)
-        : verticalScale(10),
+    top: Platform.OS === 'android' ? StatusBar.currentHeight || verticalScale(10) : verticalScale(10),
     left: scale(20),
     zIndex: 100,
   },
@@ -292,9 +278,8 @@ const styles = StyleSheet.create({
   otpContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: verticalScale(25),
     gap: scale(12),
+    marginBottom: verticalScale(25),
   },
   otpInput: {
     width: scale(50),
@@ -312,8 +297,14 @@ const styles = StyleSheet.create({
     borderColor: '#059669',
     backgroundColor: '#ecfdf5',
   },
-  timerContainer: { alignItems: 'center', marginBottom: verticalScale(30) },
-  timerText: { fontSize: moderateScale(14), color: '#6b7280' },
+  timerContainer: {
+    alignItems: 'center',
+    marginBottom: verticalScale(30),
+  },
+  timerText: {
+    fontSize: moderateScale(14),
+    color: '#6b7280',
+  },
   resendText: {
     fontSize: moderateScale(14),
     color: '#059669',
@@ -328,19 +319,28 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 400,
     alignSelf: 'center',
-    minHeight: verticalScale(50),
     justifyContent: 'center',
   },
-  verifyButtonDisabled: { backgroundColor: '#e5e7eb' },
-  buttonContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  verifyButtonDisabled: {
+    backgroundColor: '#e5e7eb',
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   verifyButtonText: {
     color: '#ffffff',
     fontSize: moderateScale(18),
     fontWeight: '600',
     textAlign: 'center',
   },
-  verifyButtonTextDisabled: { color: '#9ca3af' },
-  verifyIcon: { marginLeft: scale(8) },
+  verifyButtonTextDisabled: {
+    color: '#9ca3af',
+  },
+  verifyIcon: {
+    marginLeft: scale(8),
+  },
   helpText: {
     fontSize: moderateScale(14),
     textAlign: 'center',
