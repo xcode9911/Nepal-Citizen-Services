@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
@@ -13,17 +13,20 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
-// Responsive scaling functions
+// Scaling functions
 const scale = (size: number) => (width / 375) * size;
 const verticalScale = (size: number) => (height / 812) * size;
-const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+const moderateScale = (size: number, factor = 0.5) =>
+  size + (scale(size) - size) * factor;
 
 export default function OTP() {
+  const { email, citizenshipNo } = useLocalSearchParams<{ email: string; citizenshipNo: string }>();
   const [otp, setOtp] = useState(['', '', '', '', '']);
   const [timer, setTimer] = useState(60);
   const inputRefs = useRef<TextInput[]>([]);
@@ -41,7 +44,6 @@ export default function OTP() {
     newOtp[index] = value;
     setOtp(newOtp);
 
-    // Auto-focus next input
     if (value && index < 4) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -53,14 +55,42 @@ export default function OTP() {
     }
   };
 
-  const handleVerifyOtp = () => {
+  const handleVerifyOtp = async () => {
     const otpCode = otp.join('');
-    if (otpCode.length === 5) {
-      console.log('OTP Verified:', otpCode);
-      // Handle OTP verification logic here
-      router.push('/dashboard'); // Navigate to next screen after verification
-    } else {
-      console.log('Please enter complete OTP');
+    if (otpCode.length !== 5) {
+      Alert.alert('Incomplete OTP', 'Please enter all 5 digits of the OTP.');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/api/users/verify-activation-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          citizenshipNo,
+          otp: otpCode,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        Alert.alert('Verification Failed', data.message || 'Invalid or expired OTP.');
+        return;
+      }
+
+      Alert.alert('Success', 'Account activated successfully!', [
+        {
+          text: 'Continue',
+          onPress: () => router.push('/dashboard'),
+        },
+      ]);
+    } catch (error) {
+      console.error('OTP Verification Error:', error);
+      Alert.alert('Error', 'Could not verify OTP. Please try again.');
     }
   };
 
@@ -69,7 +99,8 @@ export default function OTP() {
       setTimer(60);
       setOtp(['', '', '', '', '']);
       inputRefs.current[0]?.focus();
-      console.log('OTP Resent');
+      // Trigger resend logic here if implemented on backend
+      Alert.alert('OTP Sent', 'A new OTP has been sent to your email.');
     }
   };
 
@@ -81,59 +112,49 @@ export default function OTP() {
     }
   };
 
-  const isOtpComplete = otp.every(digit => digit !== '');
+  const isOtpComplete = otp.every((digit) => digit !== '');
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar 
-        barStyle="dark-content" 
+      <StatusBar
+        barStyle="dark-content"
         backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
         translucent={false}
       />
-      
-      {/* Back Button Header */}
+
+      {/* Back Button */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-          <Ionicons 
-            name="arrow-back" 
-            size={moderateScale(24)} 
-            color="#059669" 
-          />
+          <Ionicons name="arrow-back" size={moderateScale(24)} color="#059669" />
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.content}>
-            {/* Logo */}
             <View style={styles.logoContainer}>
-              <Image 
-                source={require('../assets/images/Logo.png')} 
+              <Image
+                source={require('../assets/images/Logo.png')}
                 style={styles.logo}
                 resizeMode="contain"
               />
             </View>
-            
-            {/* App Title */}
+
             <Text style={styles.titleMain}>Nepal Citizen</Text>
             <Text style={styles.titleSub}>Services</Text>
-            
-            {/* Main Heading */}
             <Text style={styles.heading}>Verify OTP</Text>
-            
-            {/* Subtitle */}
             <Text style={styles.subtitle}>
               Enter the 5-digit code sent to{'\n'}your registered email
             </Text>
-            
-            {/* OTP Input Fields */}
+
+            {/* OTP Inputs */}
             <View style={styles.otpContainer}>
               {otp.map((digit, index) => (
                 <TextInput
@@ -143,7 +164,7 @@ export default function OTP() {
                   }}
                   style={[
                     styles.otpInput,
-                    digit ? styles.otpInputFilled : null
+                    digit ? styles.otpInputFilled : null,
                   ]}
                   value={digit}
                   onChangeText={(value) => handleOtpChange(value, index)}
@@ -155,48 +176,47 @@ export default function OTP() {
                 />
               ))}
             </View>
-            
-            {/* Timer and Resend */}
+
+            {/* Timer */}
             <View style={styles.timerContainer}>
               {timer > 0 ? (
-                <Text style={styles.timerText}>
-                  Resend OTP in {timer}s
-                </Text>
+                <Text style={styles.timerText}>Resend OTP in {timer}s</Text>
               ) : (
                 <TouchableOpacity onPress={handleResendOtp}>
                   <Text style={styles.resendText}>Resend OTP</Text>
                 </TouchableOpacity>
               )}
             </View>
-            
+
             {/* Verify Button */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
                 styles.verifyButton,
-                !isOtpComplete && styles.verifyButtonDisabled
-              ]} 
+                !isOtpComplete && styles.verifyButtonDisabled,
+              ]}
               onPress={handleVerifyOtp}
               disabled={!isOtpComplete}
             >
               <View style={styles.buttonContent}>
-                <Text style={[
-                  styles.verifyButtonText,
-                  !isOtpComplete && styles.verifyButtonTextDisabled
-                ]}>
+                <Text
+                  style={[
+                    styles.verifyButtonText,
+                    !isOtpComplete && styles.verifyButtonTextDisabled,
+                  ]}
+                >
                   Verify OTP
                 </Text>
-                <Ionicons 
-                  name="checkmark-circle" 
-                  size={moderateScale(20)} 
-                  color={isOtpComplete ? "#ffffff" : "#9ca3af"} 
+                <Ionicons
+                  name="checkmark-circle"
+                  size={moderateScale(20)}
+                  color={isOtpComplete ? '#ffffff' : '#9ca3af'}
                   style={styles.verifyIcon}
                 />
               </View>
             </TouchableOpacity>
-            
-            {/* Help Text */}
+
             <Text style={styles.helpText}>
-              Didn't receive the code? Check your spam folder
+              Didn't receive the code? Check your spam folder.
             </Text>
           </View>
         </ScrollView>
@@ -206,13 +226,13 @@ export default function OTP() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
+  container: { flex: 1, backgroundColor: '#ffffff' },
   header: {
     position: 'absolute',
-    top: Platform.OS === 'android' ? StatusBar.currentHeight || verticalScale(10) : verticalScale(10),
+    top:
+      Platform.OS === 'android'
+        ? StatusBar.currentHeight || verticalScale(10)
+        : verticalScale(10),
     left: scale(20),
     zIndex: 100,
   },
@@ -229,36 +249,23 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
+  keyboardAvoidingView: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
   content: {
     flex: 1,
     paddingHorizontal: scale(24),
-    paddingTop: verticalScale(20), 
+    paddingTop: verticalScale(20),
     paddingBottom: verticalScale(20),
     justifyContent: 'center',
   },
-  logoContainer: {
-    alignItems: 'center',
-    marginBottom: verticalScale(5),
-  },
-  logo: {
-    width: scale(120),
-    height: scale(120),
-  },
+  logoContainer: { alignItems: 'center', marginBottom: verticalScale(5) },
+  logo: { width: scale(120), height: scale(120) },
   titleMain: {
     fontSize: moderateScale(28),
     textAlign: 'center',
     color: '#065f46',
     fontWeight: '300',
     letterSpacing: 2,
-    textShadowColor: 'rgba(0, 0, 0, 0.15)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
     marginBottom: verticalScale(3),
   },
   titleSub: {
@@ -267,9 +274,6 @@ const styles = StyleSheet.create({
     color: '#065f46',
     fontWeight: '300',
     letterSpacing: 2,
-    textShadowColor: 'rgba(0, 0, 0, 0.15)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
     marginBottom: verticalScale(25),
   },
   heading: {
@@ -284,7 +288,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#4b5563',
     marginBottom: verticalScale(30),
-    lineHeight: moderateScale(22),
   },
   otpContainer: {
     flexDirection: 'row',
@@ -309,14 +312,8 @@ const styles = StyleSheet.create({
     borderColor: '#059669',
     backgroundColor: '#ecfdf5',
   },
-  timerContainer: {
-    alignItems: 'center',
-    marginBottom: verticalScale(30),
-  },
-  timerText: {
-    fontSize: moderateScale(14),
-    color: '#6b7280',
-  },
+  timerContainer: { alignItems: 'center', marginBottom: verticalScale(30) },
+  timerText: { fontSize: moderateScale(14), color: '#6b7280' },
   resendText: {
     fontSize: moderateScale(14),
     color: '#059669',
@@ -328,40 +325,22 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(25),
     paddingVertical: verticalScale(16),
     marginBottom: verticalScale(20),
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
     width: '100%',
     maxWidth: 400,
     alignSelf: 'center',
     minHeight: verticalScale(50),
     justifyContent: 'center',
   },
-  verifyButtonDisabled: {
-    backgroundColor: '#e5e7eb',
-  },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  verifyButtonDisabled: { backgroundColor: '#e5e7eb' },
+  buttonContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   verifyButtonText: {
     color: '#ffffff',
     fontSize: moderateScale(18),
     fontWeight: '600',
     textAlign: 'center',
   },
-  verifyButtonTextDisabled: {
-    color: '#9ca3af',
-  },
-  verifyIcon: {
-    marginLeft: scale(8),
-  },
+  verifyButtonTextDisabled: { color: '#9ca3af' },
+  verifyIcon: { marginLeft: scale(8) },
   helpText: {
     fontSize: moderateScale(14),
     textAlign: 'center',

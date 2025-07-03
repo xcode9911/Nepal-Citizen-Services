@@ -13,96 +13,114 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
-// Responsive scaling functions
 const scale = (size: number) => (width / 375) * size;
 const verticalScale = (size: number) => (height / 812) * size;
-const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+const moderateScale = (size: number, factor = 0.5) =>
+  size + (scale(size) - size) * factor;
 
-export default function Index() {
+export default function Register() {
   const [citizenshipNumber, setCitizenshipNumber] = useState('');
   const [email, setEmail] = useState('');
 
-  const handleRegister = () => {
-    // Handle registration logic here
-    console.log('Register pressed');
-    console.log('Citizenship Number:', citizenshipNumber);
-    console.log('Email:', email);
-    router.push("/otp");
+  const handleRegister = async () => {
+    const trimmedEmail = email.trim();
+    const trimmedCitizenship = citizenshipNumber.trim();
+
+    if (!trimmedEmail || !trimmedCitizenship) {
+      Alert.alert('Missing Fields', 'Please enter both email and citizenship number.');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/api/users/activate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: trimmedEmail,
+          citizenshipNo: trimmedCitizenship,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        Alert.alert('Error', data.message || 'Something went wrong.');
+        return;
+      }
+
+      router.push({
+        pathname: '/otp',
+        params: {
+          email: trimmedEmail,
+          citizenshipNo: trimmedCitizenship,
+        },
+      });
+    } catch (error) {
+      console.error('Activation Error:', error);
+      Alert.alert('Network Error', 'Could not connect to the server.');
+    }
   };
 
   const handleLogin = () => {
-    // Handle navigation to login screen
-    router.push("/login");
+    router.push('/login');
   };
 
   const handleGoBack = () => {
-    // Navigate back to previous screen
     if (router.canGoBack()) {
       router.back();
     } else {
-      // Fallback navigation if no previous screen
       router.push('/');
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar 
-        barStyle="dark-content" 
+      <StatusBar
+        barStyle="dark-content"
         backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
         translucent={false}
       />
-      
-      {/* Back Button Header */}
+
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-          <Ionicons 
-            name="arrow-back" 
-            size={moderateScale(24)} 
-            color="#059669" 
-          />
+          <Ionicons name="arrow-back" size={moderateScale(24)} color="#059669" />
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.content}>
-            {/* Logo */}
             <View style={styles.logoContainer}>
-              <Image 
-                source={require('../assets/images/Logo.png')} 
+              <Image
+                source={require('../assets/images/Logo.png')}
                 style={styles.logo}
                 resizeMode="contain"
               />
             </View>
-            
-            {/* App Title */}
+
             <Text style={styles.titleMain}>Nepal Citizen</Text>
             <Text style={styles.titleSub}>Services</Text>
-            
-            {/* Main Heading */}
             <Text style={styles.heading}>Get registered with us</Text>
-            
-            {/* Subtitle */}
             <Text style={styles.subtitle}>
               Enter your valid credentials{'\n'}carefully
             </Text>
-            
-            {/* Form Fields */}
+
             <View style={styles.formContainer}>
-              {/* Citizenship Number Field */}
               <Text style={styles.label}>Citizenship Number:</Text>
               <TextInput
                 style={styles.input}
@@ -112,8 +130,7 @@ export default function Index() {
                 onChangeText={setCitizenshipNumber}
                 keyboardType="numeric"
               />
-              
-              {/* Email Field */}
+
               <Text style={styles.label}>Email:</Text>
               <TextInput
                 style={styles.input}
@@ -125,13 +142,11 @@ export default function Index() {
                 autoCapitalize="none"
               />
             </View>
-            
-            {/* Register Button */}
+
             <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
               <Text style={styles.registerButtonText}>Register</Text>
             </TouchableOpacity>
-            
-            {/* Login Link */}
+
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Already registered? </Text>
               <TouchableOpacity onPress={handleLogin}>
@@ -148,11 +163,14 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff', // White background for both iOS and Android
+    backgroundColor: '#ffffff',
   },
   header: {
     position: 'absolute',
-    top: Platform.OS === 'android' ? StatusBar.currentHeight || verticalScale(10) : verticalScale(10),
+    top:
+      Platform.OS === 'android'
+        ? StatusBar.currentHeight || verticalScale(10)
+        : verticalScale(10),
     left: scale(20),
     zIndex: 100,
   },
@@ -178,7 +196,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: scale(24),
-    paddingTop: verticalScale(20), 
+    paddingTop: verticalScale(20),
     paddingBottom: verticalScale(20),
     justifyContent: 'center',
   },
@@ -193,7 +211,7 @@ const styles = StyleSheet.create({
   titleMain: {
     fontSize: moderateScale(28),
     textAlign: 'center',
-    color: '#065f46', // Dark mint green
+    color: '#065f46',
     fontWeight: '300',
     letterSpacing: 2,
     textShadowColor: 'rgba(0, 0, 0, 0.15)',
@@ -204,7 +222,7 @@ const styles = StyleSheet.create({
   titleSub: {
     fontSize: moderateScale(28),
     textAlign: 'center',
-    color: '#065f46', // Dark mint green
+    color: '#065f46',
     fontWeight: '300',
     letterSpacing: 2,
     textShadowColor: 'rgba(0, 0, 0, 0.15)',
@@ -216,7 +234,7 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(24),
     fontWeight: '600',
     textAlign: 'center',
-    color: '#059669', // Medium mint green for heading
+    color: '#059669',
     marginBottom: verticalScale(12),
   },
   subtitle: {
@@ -235,32 +253,29 @@ const styles = StyleSheet.create({
   label: {
     fontSize: moderateScale(16),
     fontWeight: '500',
-    color: '#065f46', // Dark mint green for labels
+    color: '#065f46',
     marginBottom: verticalScale(8),
     marginTop: verticalScale(12),
   },
   input: {
-    backgroundColor: '#d1fae5', // Light mint green input background
+    backgroundColor: '#d1fae5',
     borderRadius: moderateScale(25),
     paddingHorizontal: scale(20),
     paddingVertical: verticalScale(16),
     fontSize: moderateScale(16),
-    color: '#065f46', // Dark mint green for input text
+    color: '#065f46',
     width: '100%',
     minHeight: verticalScale(50),
     borderWidth: 1,
-    borderColor: '#a7f3d0', // Mint green border
+    borderColor: '#a7f3d0',
   },
   registerButton: {
-    backgroundColor: '#059669', // Mint green button
+    backgroundColor: '#059669',
     borderRadius: moderateScale(25),
     paddingVertical: verticalScale(16),
     marginBottom: verticalScale(20),
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
@@ -290,7 +305,7 @@ const styles = StyleSheet.create({
   },
   loginLink: {
     fontSize: moderateScale(16),
-    color: '#059669', // Mint green link color
+    color: '#059669',
     fontWeight: '500',
     textDecorationLine: 'underline',
   },
