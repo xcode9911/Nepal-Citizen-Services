@@ -53,16 +53,12 @@ export default function Login() {
         return;
       }
 
-      Alert.alert('OTP Sent', 'An OTP has been sent to your email.', [
-        {
-          text: 'Continue',
-          onPress: () =>
-            router.push({
-              pathname: '/LoginOtp',
-              params: { email, citizenshipNo: citizenshipNumber },
-            }),
-        },
-      ]);
+      // Navigate directly without showing success alert
+      router.push({
+        pathname: '/LoginOtp',
+        params: { email, citizenshipNo: citizenshipNumber },
+      });
+
     } catch (error) {
       console.error('Login error:', error);
       Alert.alert('Error', 'Something went wrong. Please try again.');
