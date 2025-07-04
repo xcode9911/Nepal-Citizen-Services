@@ -174,7 +174,25 @@ export const verifyLoginOTP = (io: any) => async (req: Request, res: Response) =
       return res.status(400).json({ message: 'Invalid or expired OTP.' });
     }
     await prisma.otp.deleteMany({ where: { userId: user.id } });
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || 'default_secret', {
+    // Only include scalar fields in the JWT payload (no relations)
+    const userPayload = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      address: user.address,
+      fatherName: user.fatherName,
+      motherName: user.motherName,
+      citizenshipNo: user.citizenshipNo,
+      issueDate: user.issueDate,
+      dob: user.dob,
+      panNumber: user.panNumber,
+      panIssueDate: user.panIssueDate,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      is_active: user.is_active,
+      salary: user.salary,
+    };
+    const token = jwt.sign(userPayload, process.env.JWT_SECRET || 'default_secret', {
       expiresIn: '1h',
     });
     await sendNotification(user.id, "Login Successful", "You have logged in successfully.", io);
