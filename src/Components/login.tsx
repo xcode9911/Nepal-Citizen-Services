@@ -133,7 +133,9 @@ export default function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log("Login successful, navigating to OTP...")
+        if (data.token) {
+          localStorage.setItem("jwtToken", data.token);
+        }
         // Store adminId and email in sessionStorage for OTP page
         sessionStorage.setItem("adminId", data.adminId);
         sessionStorage.setItem("userEmail", formData.email)
