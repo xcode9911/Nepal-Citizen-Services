@@ -112,7 +112,7 @@ export default function CitizenCardPage() {
   };
 
   const handleDownloadCard = async () => {
-    if (!cardRef.current) return;
+    if (!cardRef.current?.capture) return;
     
     try {
       const uri = await cardRef.current.capture();
@@ -138,7 +138,7 @@ export default function CitizenCardPage() {
   };
 
   const handleShareCard = async () => {
-    if (!cardRef.current) return;
+    if (!cardRef.current?.capture) return;
     
     try {
       const uri = await cardRef.current.capture();
