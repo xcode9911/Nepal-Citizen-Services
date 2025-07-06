@@ -1,6 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { jwtDecode } from 'jwt-decode';
+import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -20,8 +22,33 @@ const scale = (size: number) => (width / 375) * size;
 const verticalScale = (size: number) => (height / 812) * size;
 const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
 
+interface UserData {
+  name: string;
+  citizenshipNo: string;
+}
+
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (token) {
+        const decoded = jwtDecode(token) as any;
+        setUserData({
+          name: decoded.name || 'User',
+          citizenshipNo: decoded.citizenshipNo || 'N/A',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+    }
+  };
 
   const handleProfilePress = () => {
     router.push('/profile');
@@ -106,7 +133,7 @@ export default function Dashboard() {
         <View style={styles.header}>
           <View>
             <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>John Doe</Text>
+            <Text style={styles.userName}>{userData?.name || 'User'}</Text>
           </View>
           <TouchableOpacity style={styles.notificationButton} onPress={handleNotificationsPress}>
             <Ionicons name="notifications" size={moderateScale(24)} color="#059669" />
@@ -124,8 +151,8 @@ export default function Dashboard() {
               style={styles.profileImage}
             />
             <View style={styles.profileDetails}>
-              <Text style={styles.profileName}>John Doe</Text>
-              <Text style={styles.profileId}>ID: NP-123456789</Text>
+              <Text style={styles.profileName}>{userData?.name || 'User'}</Text>
+              <Text style={styles.profileId}>ID: {userData?.citizenshipNo || 'N/A'}</Text>
               <Text style={styles.profileStatus}>✓ Verified Citizen</Text>
             </View>
           </View>

@@ -1,6 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as MediaLibrary from 'expo-media-library';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import * as Sharing from 'expo-sharing';
+import { jwtDecode } from 'jwt-decode';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Dimensions,
@@ -13,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import ViewShot from 'react-native-view-shot';
 
 const { width, height } = Dimensions.get('window');
 
@@ -21,33 +26,142 @@ const scale = (size: number) => (width / 375) * size;
 const verticalScale = (size: number) => (height / 812) * size;
 const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
 
+type TokenPayload = {
+  name: string;
+  fatherName: string;
+  motherName: string;
+  dob: string;
+  citizenshipNo: string;
+  address: string;
+  issueDate: string;
+};
+
 export default function PANCardPage() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
+  const [panCardData, setPanCardData] = useState<{
+    fullName: string;
+    dateOfBirth: string;
+    panNumber: string;
+    address: string;
+    citizenNumber: string;
+    issueDate: string;
+    issuePlace: string;
+    signature: string;
+  } | null>(null);
+  const viewShotRef = useRef<ViewShot>(null);
+
+  useEffect(() => {
+    const loadToken = async () => {
+      try {
+        const token = await AsyncStorage.getItem('authToken');
+        console.log('Token loaded for PAN:', token ? 'Token exists' : 'No token found');
+        
+        if (!token) {
+          console.log('No token found in AsyncStorage for PAN');
+          return;
+        }
+        
+        const decoded: TokenPayload = jwtDecode(token);
+        console.log('Token decoded successfully for PAN:', decoded);
+        
+        // Format dates to DD/MM/YYYY
+        const formatDate = (dateString: string) => {
+          try {
+            const date = new Date(dateString);
+            return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+          } catch (error) {
+            console.error('Date formatting error:', error);
+            return dateString; // Return original if parsing fails
+          }
+        };
+        
+        // Generate PAN number from citizenship number
+        const generatePAN = (citizenshipNo: string) => {
+          const name = decoded.name || 'DEMO';
+          const firstLetters = name.substring(0, 5).toUpperCase().padEnd(5, 'A');
+          const numbers = citizenshipNo.replace(/\D/g, '').substring(0, 4).padEnd(4, '0');
+          const lastLetter = name.charAt(name.length - 1).toUpperCase() || 'A';
+          return `${firstLetters}${numbers}${lastLetter}`;
+        };
+        
+        setPanCardData({
+          fullName: decoded.name?.toUpperCase() || 'N/A',
+          dateOfBirth: formatDate(decoded.dob || ''),
+          panNumber: generatePAN(decoded.citizenshipNo || ''),
+          address: decoded.address || 'N/A',
+          citizenNumber: decoded.citizenshipNo || 'N/A',
+          issueDate: formatDate(decoded.issueDate || ''),
+          issuePlace: 'Inland Revenue Department, Kathmandu',
+          signature: decoded.name || 'N/A',
+        });
+      } catch (error) {
+        console.error('Failed to load or decode token for PAN:', error);
+        // Set default data if token loading fails
+        setPanCardData({
+          fullName: 'DEMO USER',
+          dateOfBirth: '01/01/1990',
+          panNumber: 'DEMOU1234A',
+          address: 'Ward No. 5, Kathmandu Metropolitan City, Bagmati Province, Nepal',
+          citizenNumber: 'DEMO-123456',
+          issueDate: '01/01/2020',
+          issuePlace: 'Inland Revenue Department, Kathmandu',
+          signature: 'DEMO USER',
+        });
+      }
+    };
+    
+    loadToken();
+  }, []);
 
   const handleGoBack = () => {
     router.back();
   };
 
-  const handleDownloadCard = () => {
-    Alert.alert(
-      'Download PAN Card',
-      'Download digital PAN card as PDF?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Download', onPress: () => Alert.alert('Success', 'PAN card downloaded successfully!') },
-      ]
-    );
+  const handleDownloadCard = async () => {
+    if (!viewShotRef.current?.capture) return;
+
+    try {
+      const uri = await viewShotRef.current.capture();
+      
+      // Request permission to save to media library
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Permission to save to gallery is required.');
+        return;
+      }
+      
+      // Save to media library
+      await MediaLibrary.saveToLibraryAsync(uri);
+      Alert.alert(
+        'Success', 
+        'PAN card saved to your gallery!\n\nNote: This is a demo card for demonstration purposes only.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Download error:', error);
+      Alert.alert('Error', 'Failed to download the card. Please try again.');
+    }
   };
 
-  const handleShareCard = () => {
-    Alert.alert(
-      'Share PAN Card',
-      'Share your digital PAN card?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Share', onPress: () => Alert.alert('Shared', 'PAN card shared successfully!') },
-      ]
-    );
+  const handleShareCard = async () => {
+    if (!viewShotRef.current?.capture) return;
+
+    try {
+      const uri = await viewShotRef.current.capture();
+      
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: 'Share PAN Card',
+          UTI: 'public.png'
+        });
+      } else {
+        Alert.alert('Sharing not available', 'Sharing is not available on this device.');
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      Alert.alert('Error', 'Failed to share the card. Please try again.');
+    }
   };
 
   const handleVerifyCard = () => {
@@ -58,17 +172,20 @@ export default function PANCardPage() {
     setIsCardFlipped(!isCardFlipped);
   };
 
-  // Mock PAN card data
-  const panCardData = {
-    fullName: 'JOHN DOE',
-    dateOfBirth: '15/08/1990',
-    panNumber: 'ABCDE1234F',
-    address: 'Ward No. 5, Kathmandu Metropolitan City, Bagmati Province, Nepal',
-    citizenNumber: 'NP-123456789',
-    issueDate: '25/12/2023',
-    issuePlace: 'Inland Revenue Department, Kathmandu',
-    signature: 'John Doe',
-  };
+  if (!panCardData) {
+    return (
+      <View style={styles.container}>
+        <StatusBar 
+          barStyle="dark-content" 
+          backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
+          translucent={false}
+        />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text>Loading your PAN data...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -103,11 +220,12 @@ export default function PANCardPage() {
 
         {/* Digital PAN Card */}
         <View style={styles.cardContainer}>
-          <TouchableOpacity 
-            style={styles.cardWrapper} 
-            onPress={handleFlipCard}
-            activeOpacity={0.9}
-          >
+          <ViewShot ref={viewShotRef} options={{ format: 'png', quality: 0.9 }}>
+            <TouchableOpacity 
+              style={styles.cardWrapper} 
+              onPress={handleFlipCard}
+              activeOpacity={0.9}
+            >
             {!isCardFlipped ? (
               // Front of the card
               <View style={styles.panCard}>
@@ -222,6 +340,7 @@ export default function PANCardPage() {
               </View>
             )}
           </TouchableOpacity>
+          </ViewShot>
         </View>
 
         {/* Action Buttons */}
