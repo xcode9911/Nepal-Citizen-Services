@@ -1,18 +1,17 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
+  Dimensions,
+  Image,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  StatusBar,
-  Dimensions,
-  ScrollView,
-  Platform,
-  Image,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -92,7 +91,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar 
         barStyle="dark-content" 
         backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
@@ -251,7 +250,7 @@ export default function Dashboard() {
         <Ionicons name="chatbubble-ellipses" size={moderateScale(28)} color="#ffffff" />
         <View style={styles.floatingOnlineIndicator} />
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -259,6 +258,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
   },
   scrollView: {
     flex: 1,

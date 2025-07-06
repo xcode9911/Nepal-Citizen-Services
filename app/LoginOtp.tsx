@@ -1,23 +1,23 @@
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  StatusBar,
-  Dimensions,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Image,
-  Alert,
-  ActivityIndicator,
+  View,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Ionicons } from '@expo/vector-icons';
+import { API_BASE_URL, API_ENDPOINTS } from '../constants/Config';
 
 const { width, height } = Dimensions.get('window');
 
@@ -65,7 +65,7 @@ export default function OTP() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/users/verify-login-otp', {
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.VERIFY_LOGIN_OTP}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, citizenshipNo, otp: otpCode }),
@@ -79,12 +79,7 @@ export default function OTP() {
       }
 
       await AsyncStorage.setItem('authToken', data.token);
-      Alert.alert('Success', 'Login successful.', [
-        {
-          text: 'Continue',
-          onPress: () => router.push('/dashboard'),
-        },
-      ]);
+      router.push('/dashboard');
     } catch (err) {
       console.error('Error verifying OTP:', err);
       Alert.alert('Error', 'Something went wrong. Please try again.');
@@ -113,7 +108,7 @@ export default function OTP() {
   const isOtpComplete = otp.every((digit) => digit !== '');
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar
         barStyle="dark-content"
         backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
@@ -210,12 +205,16 @@ export default function OTP() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#ffffff',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
+  },
   header: {
     position: 'absolute',
     top: Platform.OS === 'android' ? StatusBar.currentHeight || verticalScale(10) : verticalScale(10),

@@ -1,19 +1,18 @@
+import { Ionicons } from '@expo/vector-icons';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  StatusBar,
+  ActivityIndicator,
+  Alert,
   Dimensions,
   Platform,
-  Alert,
-  ActivityIndicator,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Camera, CameraView, useCameraPermissions } from 'expo-camera';
 
 const { width, height } = Dimensions.get('window');
 
@@ -197,7 +196,7 @@ export default function QRCodePage() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar 
         barStyle="dark-content" 
         backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
@@ -248,7 +247,7 @@ export default function QRCodePage() {
       <View style={styles.content}>
         {activeTab === 'my-qr' ? renderMyQR() : renderScanner()}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -256,6 +255,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
   },
   header: {
     flexDirection: 'row',

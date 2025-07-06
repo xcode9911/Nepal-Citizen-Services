@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   StatusBar,
   Dimensions,
   ScrollView,
@@ -26,7 +25,7 @@ export default function PrivacyPolicy() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar 
         barStyle="dark-content" 
         backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
@@ -186,12 +185,13 @@ export default function PrivacyPolicy() {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
     flex: 1,
     backgroundColor: '#ffffff',
   },

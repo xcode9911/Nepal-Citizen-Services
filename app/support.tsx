@@ -1,21 +1,20 @@
-import { useState, useEffect, useRef } from "react"
-import {
-  View,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  Text,
-  StyleSheet,
-  StatusBar,
-  Platform,
-  Dimensions,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Alert,
-  SafeAreaView,
-} from "react-native"
 import { Ionicons } from "@expo/vector-icons"
 import { router } from "expo-router"
+import { useEffect, useRef, useState } from "react"
+import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native"
 
 const { width, height } = Dimensions.get("window")
 
@@ -130,7 +129,7 @@ export default function ChatSupportScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar 
         barStyle="dark-content" 
         backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
@@ -233,12 +232,13 @@ export default function ChatSupportScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
     flex: 1,
     backgroundColor: '#ffffff',
   },

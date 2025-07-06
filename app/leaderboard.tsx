@@ -1,20 +1,18 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
+  Alert,
+  Dimensions,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  StatusBar,
-  Dimensions,
-  ScrollView,
-  Platform,
-  Image,
-  Alert,
-  RefreshControl,
+  View
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -233,7 +231,7 @@ export default function LeaderboardPage() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar 
         barStyle="dark-content" 
         backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
@@ -308,7 +306,7 @@ export default function LeaderboardPage() {
                 {/* 1st Place */}
                 <View style={[styles.podiumPlace, styles.firstPlace]}>
                   <View style={styles.crownContainer}>
-                    <Ionicons name="crown" size={moderateScale(32)} color="#fbbf24" />
+                    <Ionicons name="trophy" size={moderateScale(32)} color="#fbbf24" />
                   </View>
                   <View style={styles.podiumUser}>
                     <View style={[styles.podiumAvatar, styles.winnerAvatar, { backgroundColor: getBadgeColor(leaderboardData[0].badge) }]}>
@@ -460,12 +458,13 @@ export default function LeaderboardPage() {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
     flex: 1,
     backgroundColor: '#ffffff',
   },
@@ -678,6 +677,9 @@ const styles = StyleSheet.create({
     color: '#374151',
   },
   currentUserName: {
+    color: '#065f46',
+  },
+  currentUserPoints: {
     color: '#065f46',
   },
   userMeta: {

@@ -1,20 +1,20 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  RefreshControl,
-  Alert,
-  SafeAreaView,
-  StatusBar,
-  Platform,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { jwtDecode } from 'jwt-decode';
 import { router } from 'expo-router';
+import { jwtDecode } from 'jwt-decode';
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { API_BASE_URL, API_ENDPOINTS } from '../constants/Config';
 
 interface Notification {
   id: string;
@@ -50,7 +50,7 @@ export default function NotificationPage() {
       }
 
       const decoded: DecodedToken = jwtDecode(token);
-      const response = await fetch(`http://localhost:8000/api/users/notifications/${decoded.userId}`, {
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.NOTIFICATIONS}/${decoded.userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -111,7 +111,7 @@ export default function NotificationPage() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar
         barStyle="dark-content"
         backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
@@ -191,12 +191,16 @@ export default function NotificationPage() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#fff',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

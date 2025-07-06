@@ -1,19 +1,23 @@
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as MediaLibrary from 'expo-media-library';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import * as Sharing from 'expo-sharing';
+import { jwtDecode } from 'jwt-decode';
+import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
+  Alert,
+  Dimensions,
+  Image,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  StatusBar,
-  Dimensions,
-  ScrollView,
-  Platform,
-  Image,
-  Alert,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import ViewShot from 'react-native-view-shot';
 
 const { width, height } = Dimensions.get('window');
 
@@ -22,33 +26,136 @@ const scale = (size: number) => (width / 375) * size;
 const verticalScale = (size: number) => (height / 812) * size;
 const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
 
+type TokenPayload = {
+  name: string;
+  fatherName: string;
+  motherName: string;
+  dob: string;
+  citizenshipNo: string;
+  address: string;
+  issueDate: string;
+};
+
 export default function CitizenCardPage() {
   const [isCardFlipped, setIsCardFlipped] = useState(false);
+  const [citizenCardData, setCitizenCardData] = useState<{
+    fullName: string;
+    fatherName: string;
+    motherName: string;
+    dateOfBirth: string;
+    citizenNumber: string;
+    nationality: string;
+    permanentAddress: string;
+    issueDate: string;
+    signature: string;
+  } | null>(null);
+  const cardRef = useRef<ViewShot>(null);
+
+  useEffect(() => {
+    const loadToken = async () => {
+      try {
+        const token = await AsyncStorage.getItem('authToken');
+        console.log('Token loaded:', token ? 'Token exists' : 'No token found');
+        
+        if (!token) {
+          console.log('No token found in AsyncStorage');
+          return;
+        }
+        
+        const decoded: TokenPayload = jwtDecode(token);
+        console.log('Token decoded successfully:', decoded);
+        
+        // Format dates to DD/MM/YYYY
+        const formatDate = (dateString: string) => {
+          try {
+            const date = new Date(dateString);
+            return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+          } catch (error) {
+            console.error('Date formatting error:', error);
+            return dateString; // Return original if parsing fails
+          }
+        };
+        
+        setCitizenCardData({
+          fullName: decoded.name?.toUpperCase() || 'N/A',
+          fatherName: decoded.fatherName || 'N/A',
+          motherName: decoded.motherName || 'N/A',
+          dateOfBirth: formatDate(decoded.dob || ''),
+          citizenNumber: decoded.citizenshipNo || 'N/A',
+          nationality: 'NEPALI',
+          permanentAddress: 'Ward No. 5, Kathmandu Metropolitan City, Bagmati Province, Nepal',
+          issueDate: formatDate(decoded.issueDate || ''),
+          signature: decoded.name || 'N/A',
+        });
+      } catch (error) {
+        console.error('Failed to load or decode token:', error);
+        // Set default data if token loading fails
+        setCitizenCardData({
+          fullName: 'DEMO USER',
+          fatherName: 'DEMO FATHER',
+          motherName: 'DEMO MOTHER',
+          dateOfBirth: '01/01/1990',
+          citizenNumber: 'DEMO-123456',
+          nationality: 'NEPALI',
+          permanentAddress: 'Ward No. 5, Kathmandu Metropolitan City, Bagmati Province, Nepal',
+          issueDate: '01/01/2020',
+          signature: 'DEMO USER',
+        });
+      }
+    };
+    
+    loadToken();
+  }, []);
 
   const handleGoBack = () => {
     router.back();
   };
 
-  const handleDownloadCard = () => {
-    Alert.alert(
-      'Download Citizen Card',
-      'Download digital citizen card as PDF?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Download', onPress: () => Alert.alert('Success', 'Citizen card downloaded successfully!') },
-      ]
-    );
+  const handleDownloadCard = async () => {
+    if (!cardRef.current) return;
+    
+    try {
+      const uri = await cardRef.current.capture();
+      
+      // Request permission to save to media library
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Permission to save to gallery is required.');
+        return;
+      }
+      
+      // Save to media library
+      await MediaLibrary.saveToLibraryAsync(uri);
+      Alert.alert(
+        'Success', 
+        'Citizen card saved to your gallery!\n\nNote: This is a demo card for demonstration purposes only.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Download error:', error);
+      Alert.alert('Error', 'Failed to download the card. Please try again.');
+    }
   };
 
-  const handleShareCard = () => {
-    Alert.alert(
-      'Share Citizen Card',
-      'Share your digital citizen card?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Share', onPress: () => Alert.alert('Shared', 'Citizen card shared successfully!') },
-      ]
-    );
+  const handleShareCard = async () => {
+    if (!cardRef.current) return;
+    
+    try {
+      const uri = await cardRef.current.capture();
+      
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: 'Share Citizen Card',
+          UTI: 'public.png'
+        });
+      } else {
+        Alert.alert('Sharing not available', 'Sharing is not available on this device.');
+      }
+    } catch (error) {
+      console.error('Share error:', error);
+      Alert.alert('Error', 'Failed to share the card. Please try again.');
+    }
   };
 
   const handleVerifyCard = () => {
@@ -57,21 +164,6 @@ export default function CitizenCardPage() {
 
   const handleFlipCard = () => {
     setIsCardFlipped(!isCardFlipped);
-  };
-
-  // Mock Citizen card data
-  const citizenCardData = {
-    fullName: 'JOHN DOE',
-    fatherName: 'ROBERT DOE',
-    motherName: 'MARY DOE',
-    dateOfBirth: '15/08/1990',
-    citizenNumber: 'NP-123456789',
-    nationality: 'NEPALI',
-    sex: 'MALE',
-    permanentAddress: 'Ward No. 5, Kathmandu Metropolitan City, Bagmati Province, Nepal',
-    issueDate: '25/12/2023',
-    issuePlace: 'District Administration Office, Kathmandu',
-    signature: 'John Doe',
   };
 
   const ThumbprintComponent = ({ label }: { label: string }) => (
@@ -92,8 +184,23 @@ export default function CitizenCardPage() {
     </View>
   );
 
+  if (!citizenCardData) {
+    return (
+      <View style={styles.container}>
+        <StatusBar 
+          barStyle="dark-content" 
+          backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
+          translucent={false}
+        />
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text>Loading your citizen data...</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar 
         barStyle="dark-content" 
         backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
@@ -125,11 +232,12 @@ export default function CitizenCardPage() {
 
         {/* Digital Citizen Card */}
         <View style={styles.cardContainer}>
-          <TouchableOpacity 
-            style={styles.cardWrapper} 
-            onPress={handleFlipCard}
-            activeOpacity={0.9}
-          >
+          <ViewShot ref={cardRef} options={{ format: 'png', quality: 0.9 }}>
+            <TouchableOpacity 
+              style={styles.cardWrapper} 
+              onPress={handleFlipCard}
+              activeOpacity={0.9}
+            >
             {!isCardFlipped ? (
               // Front of the card
               <View style={styles.citizenCard}>
@@ -189,10 +297,6 @@ export default function CitizenCardPage() {
                           <Text style={styles.detailLabel}>Nationality:</Text>
                           <Text style={styles.detailValue}>{citizenCardData.nationality}</Text>
                         </View>
-                        <View style={styles.detailItem}>
-                          <Text style={styles.detailLabel}>Sex:</Text>
-                          <Text style={styles.detailValue}>{citizenCardData.sex}</Text>
-                        </View>
                       </View>
                     </View>
 
@@ -210,10 +314,6 @@ export default function CitizenCardPage() {
                     <Text style={styles.footerLabel}>Issue Date:</Text>
                     <Text style={styles.footerValue}>{citizenCardData.issueDate}</Text>
                   </View>
-                  <View style={styles.footerRight}>
-                    <Text style={styles.footerLabel}>Issue Place:</Text>
-                    <Text style={styles.footerValue}>{citizenCardData.issuePlace}</Text>
-                  </View>
                 </View>
 
                 {/* Tap to flip indicator */}
@@ -226,7 +326,7 @@ export default function CitizenCardPage() {
               // Back of the card
               <View style={styles.citizenCardBack}>
                 <View style={styles.backHeader}>
-                  <Text style={styles.backTitle}>BIOMETRIC DATA & INFORMATION</Text>
+                  <Text style={styles.backTitle}>IMPORTANT INFORMATION</Text>
                 </View>
                 
                 <View style={styles.backContent}>
@@ -239,7 +339,6 @@ export default function CitizenCardPage() {
                     </View>
                   </View>
 
-                  {/* Signature Section */}
                   <View style={styles.signatureSection}>
                     <Text style={styles.signatureLabel}>Signature:</Text>
                     <View style={styles.signatureBox}>
@@ -248,19 +347,17 @@ export default function CitizenCardPage() {
                   </View>
 
                   <View style={styles.instructionsSection}>
-                    <Text style={styles.instructionsTitle}>Important Notes:</Text>
+                    <Text style={styles.instructionsTitle}>Instructions:</Text>
                     <Text style={styles.instructionText}>• This card is property of Government of Nepal</Text>
-                    <Text style={styles.instructionText}>• Report loss/theft to nearest police station</Text>
-                    <Text style={styles.instructionText}>• Valid for all official identification purposes</Text>
+                    <Text style={styles.instructionText}>• Report loss/theft immediately</Text>
+                    <Text style={styles.instructionText}>• Valid for all official purposes</Text>
                     <Text style={styles.instructionText}>• Keep this card safe and secure</Text>
-                    <Text style={styles.instructionText}>• Renewal required every 10 years</Text>
                   </View>
 
                   <View style={styles.contactSection}>
                     <Text style={styles.contactTitle}>For Support:</Text>
                     <Text style={styles.contactText}>📞 Helpline: 1180</Text>
-                    <Text style={styles.contactText}>🌐 www.dofe.gov.np</Text>
-                    <Text style={styles.contactText}>📧 info@dofe.gov.np</Text>
+                    <Text style={styles.contactText}>🌐 www.nagarikta.gov.np</Text>
                   </View>
                 </View>
 
@@ -276,6 +373,7 @@ export default function CitizenCardPage() {
               </View>
             )}
           </TouchableOpacity>
+          </ViewShot>
         </View>
 
         {/* Action Buttons */}
@@ -298,17 +396,17 @@ export default function CitizenCardPage() {
 
         {/* Card Information */}
         <View style={styles.infoContainer}>
-          <Text style={styles.infoTitle}>About Your Citizenship Certificate</Text>
+          <Text style={styles.infoTitle}>About Your Citizen Card</Text>
           <View style={styles.infoItem}>
             <Ionicons name="information-circle" size={moderateScale(16)} color="#059669" />
             <Text style={styles.infoItemText}>
-              Your citizenship certificate is the primary proof of your Nepali citizenship.
+              Your citizenship certificate is the primary identification document for all Nepali citizens.
             </Text>
           </View>
           <View style={styles.infoItem}>
             <Ionicons name="shield-checkmark" size={moderateScale(16)} color="#059669" />
             <Text style={styles.infoItemText}>
-              This digital version contains biometric data and is legally valid.
+              This digital version is as valid as the physical card for most purposes.
             </Text>
           </View>
           <View style={styles.infoItem}>
@@ -321,7 +419,7 @@ export default function CitizenCardPage() {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -329,6 +427,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
   },
   scrollView: {
     flex: 1,

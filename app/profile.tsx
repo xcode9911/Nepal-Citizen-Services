@@ -1,20 +1,19 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View,
+  Alert,
+  Dimensions,
+  Image,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  SafeAreaView,
-  StatusBar,
-  Dimensions,
-  ScrollView,
-  Platform,
-  Image,
-  Alert,
-  Switch,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -143,7 +142,7 @@ export default function ProfilePage() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar 
         barStyle="dark-content" 
         backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
@@ -204,35 +203,37 @@ export default function ProfilePage() {
           <View key={sectionIndex} style={styles.menuSection}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
             <View style={styles.menuItems}>
-              {section.items.map((item, itemIndex) => (
-                <TouchableOpacity
-                  key={itemIndex}
-                  style={[
-                    styles.menuItem,
-                    itemIndex === section.items.length - 1 && styles.lastMenuItem,
-                  ]}
-                  onPress={item.onPress}
-                  disabled={item.hasSwitch}
-                >
-                  <View style={styles.menuItemLeft}>
-                    <View style={styles.menuIconContainer}>
-                      <Ionicons name={item.icon as any} size={moderateScale(20)} color="#059669" />
+              {section.items.map((item, itemIndex) => {
+                const isSwitch = 'hasSwitch' in item && item.hasSwitch;
+                return (
+                  <TouchableOpacity
+                    key={itemIndex}
+                    style={[
+                      styles.menuItem,
+                      itemIndex === section.items.length - 1 && styles.lastMenuItem,
+                    ]}
+                    {...('onPress' in item ? { onPress: item.onPress } : {})}
+                    disabled={isSwitch}
+                  >
+                    <View style={styles.menuItemLeft}>
+                      <View style={styles.menuIconContainer}>
+                        <Ionicons name={item.icon as any} size={moderateScale(20)} color="#059669" />
+                      </View>
+                      <Text style={styles.menuItemTitle}>{item.title}</Text>
                     </View>
-                    <Text style={styles.menuItemTitle}>{item.title}</Text>
-                  </View>
-                  
-                  {item.hasSwitch ? (
-                    <Switch
-                      value={item.switchValue}
-                      onValueChange={item.onSwitchChange}
-                      trackColor={{ false: '#e5e7eb', true: '#a7f3d0' }}
-                      thumbColor={item.switchValue ? '#059669' : '#f3f4f6'}
-                    />
-                  ) : (
-                    <Ionicons name="chevron-forward" size={moderateScale(16)} color="#6b7280" />
-                  )}
-                </TouchableOpacity>
-              ))}
+                    {isSwitch ? (
+                      <Switch
+                        value={item.switchValue}
+                        onValueChange={item.onSwitchChange}
+                        trackColor={{ false: '#e5e7eb', true: '#a7f3d0' }}
+                        thumbColor={item.switchValue ? '#059669' : '#f3f4f6'}
+                      />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={moderateScale(16)} color="#6b7280" />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
         ))}
@@ -274,7 +275,7 @@ export default function ProfilePage() {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -282,6 +283,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0,
   },
   scrollView: {
     flex: 1,
