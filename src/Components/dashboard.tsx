@@ -553,7 +553,7 @@ export default function Dashboard() {
           <div className="header-left">
             <img src={Logo} alt="Nepal Government Logo" className="nepal-logo" width={60} height={60} />
             <div>
-              <h1 className="dashboard-title">Nepal Citezen Service</h1>
+              <h1 className="dashboard-title">Nepal Citizen Service</h1>
               <p className="dashboard-subtitle">Manage citizen accounts and services</p>
             </div>
           </div>
