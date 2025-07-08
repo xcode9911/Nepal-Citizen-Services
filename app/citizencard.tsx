@@ -83,7 +83,7 @@ export default function CitizenCardPage() {
           dateOfBirth: formatDate(decoded.dob || ''),
           citizenNumber: decoded.citizenshipNo || 'N/A',
           nationality: 'NEPALI',
-          permanentAddress: 'Ward No. 5, Kathmandu Metropolitan City, Bagmati Province, Nepal',
+          permanentAddress: decoded.address || 'N/A',
           issueDate: formatDate(decoded.issueDate || ''),
           signature: decoded.name || 'N/A',
         });
