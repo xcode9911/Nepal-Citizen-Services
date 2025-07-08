@@ -5,100 +5,24 @@ import { useEffect, useState } from "react"
 import "../css/dashboard.css"
 import Logo from "../assets/Logo.jpg"
 
-
-// Mock user data with payment status
-const mockUsers = [
-  {
-    id: 1,
-    name: "Ram Bahadur Thapa",
-    email: "ram.thapa@citizen.gov.np",
-    citizenshipNumber: "1234567890",
-    status: "Active",
-    role: "Citizen",
-    registeredDate: "2024-01-15",
-    lastLogin: "2024-12-20",
-    paymentStatus: "Paid",
-    lastPayment: "2024-12-15",
-    totalPaid: 1500,
-    pendingAmount: 0,
-    servicesUsed: ["Birth Certificate", "Tax Payment"],
-  },
-  {
-    id: 2,
-    name: "Sita Kumari Sharma",
-    email: "sita.sharma@citizen.gov.np",
-    citizenshipNumber: "0987654321",
-    status: "Active",
-    role: "Citizen",
-    registeredDate: "2024-02-10",
-    lastLogin: "2024-12-19",
-    paymentStatus: "Pending",
-    lastPayment: "2024-11-20",
-    totalPaid: 500,
-    pendingAmount: 1000,
-    servicesUsed: ["Citizenship Certificate"],
-  },
-  {
-    id: 3,
-    name: "Hari Prasad Poudel",
-    email: "hari.poudel@citizen.gov.np",
-    citizenshipNumber: "1122334455",
-    status: "Inactive",
-    role: "Citizen",
-    registeredDate: "2024-01-28",
-    lastLogin: "2024-12-10",
-    paymentStatus: "Overdue",
-    lastPayment: "2024-10-15",
-    totalPaid: 750,
-    pendingAmount: 2500,
-    servicesUsed: ["Tax Payment", "Land Registration"],
-  },
-  {
-    id: 4,
-    name: "Maya Devi Gurung",
-    email: "maya.gurung@citizen.gov.np",
-    citizenshipNumber: "5544332211",
-    status: "Active",
-    role: "Citizen",
-    registeredDate: "2024-03-05",
-    lastLogin: "2024-12-20",
-    paymentStatus: "Paid",
-    lastPayment: "2024-12-18",
-    totalPaid: 2250,
-    pendingAmount: 0,
-    servicesUsed: ["Marriage Certificate", "Birth Certificate"],
-  },
-  {
-    id: 5,
-    name: "Krishna Kumar Shrestha",
-    email: "krishna.shrestha@citizen.gov.np",
-    citizenshipNumber: "9988776655",
-    status: "Pending",
-    role: "Citizen",
-    registeredDate: "2024-12-18",
-    lastLogin: "Never",
-    paymentStatus: "Unpaid",
-    lastPayment: "Never",
-    totalPaid: 0,
-    pendingAmount: 500,
-    servicesUsed: ["Citizenship Certificate"],
-  },
-  {
-    id: 6,
-    name: "Gita Rani Maharjan",
-    email: "gita.maharjan@citizen.gov.np",
-    citizenshipNumber: "4455667788",
-    status: "Active",
-    role: "Citizen",
-    registeredDate: "2024-02-20",
-    lastLogin: "2024-12-19",
-    paymentStatus: "Partial",
-    lastPayment: "2024-12-10",
-    totalPaid: 1000,
-    pendingAmount: 750,
-    servicesUsed: ["Tax Payment", "Marriage Certificate"],
-  },
-]
+// User interface based on API response
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  address: string;
+  fatherName: string;
+  motherName: string;
+  citizenshipNo: string;
+  issueDate: string;
+  dob: string;
+  panNumber: string;
+  panIssueDate: string;
+  createdAt: string;
+  updatedAt: string;
+  is_active: boolean;
+  salary: number | null;
+}
 
 // Mock receipts data
 const mockReceipts = [
@@ -245,7 +169,7 @@ const LogoutIcon = () => (
 )
 
 // QR Code component (simple representation)
-const QRCodeDisplay = ({ data }) => {
+const QRCodeDisplay = ({ data }: { data: string }) => {
   // Simple QR code pattern representation
   const qrPattern = [
     [1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1],
@@ -288,9 +212,12 @@ export default function Dashboard() {
   const [userEmail, setUserEmail] = useState("")
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("All")
-  const [filteredUsers, setFilteredUsers] = useState(mockUsers)
-  const [selectedUser, setSelectedUser] = useState(null)
+  const [users, setUsers] = useState<User[]>([])
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([])
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
   // New state variables for receipt management
   const [activeTab, setActiveTab] = useState("users")
@@ -303,7 +230,7 @@ export default function Dashboard() {
 
   // New state variables for QR code scanning
   const [qrCodeInput, setQrCodeInput] = useState("")
-  const [qrScanResult, setQrScanResult] = useState(null)
+  const [qrScanResult, setQrScanResult] = useState<any>(null)
   const [qrError, setQrError] = useState("")
   const [isScanning, setIsScanning] = useState(false)
 
@@ -341,7 +268,8 @@ export default function Dashboard() {
         alert('User created successfully!');
         setNewUser({ name: '', email: '', address: '', fatherName: '', motherName: '', dob: '', issueDate: '', panIssueDate: '' });
         handleCloseAddUser();
-        // Optionally, refresh user list here if you fetch from backend
+        // Refresh user list
+        fetchUsers();
       } else {
         alert(data.message || 'Failed to create user.');
       }
@@ -350,10 +278,31 @@ export default function Dashboard() {
     }
   };
 
+  // Fetch users from API
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const baseUrl = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${baseUrl}/users`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      const data = await response.json();
+      setUsers(data);
+      setFilteredUsers(data);
+    } catch (err) {
+      setError('Failed to load users');
+      console.error('Error fetching users:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const email = sessionStorage.getItem("userEmail")
     if (email) {
       setUserEmail(email)
+      fetchUsers();
     } else {
       // If no email found, redirect to login
       navigate("/login")
@@ -362,7 +311,7 @@ export default function Dashboard() {
 
   // Enhanced filter users based on search and multiple criteria
   useEffect(() => {
-    let filtered = mockUsers
+    let filtered = users
 
     // Filter by search term
     if (searchTerm) {
@@ -370,24 +319,18 @@ export default function Dashboard() {
         (user) =>
           user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.citizenshipNumber.includes(searchTerm) ||
-          user.servicesUsed.some((service) => service.toLowerCase().includes(searchTerm.toLowerCase())),
+          user.citizenshipNo.includes(searchTerm) ||
+          user.panNumber.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
 
-    // Filter by user status
+    // Filter by user status (active/inactive)
     if (statusFilter !== "All") {
-      filtered = filtered.filter((user) => user.status === statusFilter)
-    }
-
-    // Filter by payment status
-    if (paymentStatusFilter !== "All") {
-      filtered = filtered.filter((user) => user.paymentStatus === paymentStatusFilter)
-    }
-
-    // Filter by service
-    if (serviceFilter !== "All") {
-      filtered = filtered.filter((user) => user.servicesUsed.includes(serviceFilter))
+      filtered = filtered.filter((user) => {
+        if (statusFilter === "Active") return user.is_active;
+        if (statusFilter === "Inactive") return !user.is_active;
+        return true;
+      })
     }
 
     // Filter by date range
@@ -395,14 +338,15 @@ export default function Dashboard() {
       const now = new Date()
 
       filtered = filtered.filter((user) => {
-        const userDate = new Date(user.registeredDate)
+        const userDate = new Date(user.createdAt)
+        const timeDiff = now.getTime() - userDate.getTime();
         switch (dateRangeFilter) {
           case "Last 30 days":
-            return now - userDate <= 30 * 24 * 60 * 60 * 1000
+            return timeDiff <= 30 * 24 * 60 * 60 * 1000
           case "Last 3 months":
-            return now - userDate <= 90 * 24 * 60 * 60 * 1000
+            return timeDiff <= 90 * 24 * 60 * 60 * 1000
           case "Last 6 months":
-            return now - userDate <= 180 * 24 * 60 * 60 * 1000
+            return timeDiff <= 180 * 24 * 60 * 60 * 1000
           default:
             return true
         }
@@ -410,7 +354,7 @@ export default function Dashboard() {
     }
 
     setFilteredUsers(filtered)
-  }, [searchTerm, statusFilter, paymentStatusFilter, serviceFilter, dateRangeFilter])
+  }, [searchTerm, statusFilter, paymentStatusFilter, serviceFilter, dateRangeFilter, users])
 
   const handleLogout = () => {
     // Clear session storage
@@ -419,16 +363,11 @@ export default function Dashboard() {
     navigate("/hero")
   }
 
-  const getStatusBadge = (status: string) => {
-    const statusClasses: { [key: string]: string } = {
-      Active: "status-badge status-active",
-      Inactive: "status-badge status-inactive",
-      Pending: "status-badge status-pending",
-    };
-    return statusClasses[status] || "status-badge";
+  const getStatusBadge = (isActive: boolean) => {
+    return isActive ? "status-badge status-active" : "status-badge status-inactive";
   };
 
-  const handleUserClick = (user: any) => {
+  const handleUserClick = (user: User) => {
     setSelectedUser(user);
     setIsModalOpen(true);
   };
@@ -474,13 +413,8 @@ export default function Dashboard() {
         userId = userId.substring(5);
       }
 
-      const userIdNum = Number.parseInt(userId);
-      if (isNaN(userIdNum)) {
-        throw new Error("Invalid QR code format");
-      }
-
       // Find user by ID
-      const user = mockUsers.find((u) => u.id === userIdNum);
+      const user = users.find((u) => u.id === userId);
       if (!user) {
         throw new Error("User not found");
       }
@@ -534,8 +468,8 @@ export default function Dashboard() {
     setQrError("")
   }
 
-  const getPaymentStatusBadge = (status) => {
-    const statusClasses = {
+  const getPaymentStatusBadge = (status: string) => {
+    const statusClasses: { [key: string]: string } = {
       Paid: "status-badge status-paid",
       Pending: "status-badge status-pending",
       Overdue: "status-badge status-overdue",
@@ -544,6 +478,15 @@ export default function Dashboard() {
     }
     return statusClasses[status] || "status-badge"
   }
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
 
   return (
     <div className="dashboard-container">
@@ -720,7 +663,7 @@ export default function Dashboard() {
                     <SearchIcon />
                     <input
                       type="text"
-                      placeholder="Search by name, email, citizenship number, or service..."
+                      placeholder="Search by name, email, citizenship number, or PAN number..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="search-input"
@@ -765,49 +708,6 @@ export default function Dashboard() {
                           <option value="All">All Status</option>
                           <option value="Active">Active</option>
                           <option value="Inactive">Inactive</option>
-                          <option value="Pending">Pending</option>
-                        </select>
-                      </div>
-
-                      <div className="filter-box">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
-                          <path d="M12 1v6m0 6v6" stroke="currentColor" strokeWidth="2" />
-                        </svg>
-                        <select
-                          value={paymentStatusFilter}
-                          onChange={(e) => setPaymentStatusFilter(e.target.value)}
-                          className="filter-select"
-                        >
-                          <option value="All">All Payments</option>
-                          <option value="Paid">Paid</option>
-                          <option value="Pending">Pending</option>
-                          <option value="Overdue">Overdue</option>
-                          <option value="Unpaid">Unpaid</option>
-                          <option value="Partial">Partial</option>
-                        </select>
-                      </div>
-                      
-                      <div className="filter-box">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path
-                            d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                          />
-                          <polyline points="14,2 14,8 20,8" stroke="currentColor" strokeWidth="2" />
-                        </svg>
-                        <select
-                          value={serviceFilter}
-                          onChange={(e) => setServiceFilter(e.target.value)}
-                          className="filter-select"
-                        >
-                          <option value="All">All Services</option>
-                          <option value="Birth Certificate">Birth Certificate</option>
-                          <option value="Citizenship Certificate">Citizenship Certificate</option>
-                          <option value="Marriage Certificate">Marriage Certificate</option>
-                          <option value="Tax Payment">Tax Payment</option>
-                          <option value="Land Registration">Land Registration</option>
                         </select>
                       </div>
 
@@ -835,87 +735,106 @@ export default function Dashboard() {
                         + Create User
                       </button>
                       <span className="user-count" style={{ marginTop: 4 }}>
-                        Showing <strong>{filteredUsers.length}</strong> of <strong>{mockUsers.length}</strong> users
+                        Showing <strong>{filteredUsers.length}</strong> of <strong>{users.length}</strong> users
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="stats-grid">
-                <div className="stat-card">
-                  <h3>Total Users</h3>
-                  <p className="stat-number">{mockUsers.length}</p>
-                </div>
-                <div className="stat-card">
-                  <h3>Active Users</h3>
-                  <p className="stat-number">{mockUsers.filter((u) => u.status === "Active").length}</p>
-                </div>
-                <div className="stat-card">
-                  <h3>Pending Users</h3>
-                  <p className="stat-number">{mockUsers.filter((u) => u.status === "Pending").length}</p>
-                </div>
-                <div className="stat-card">
-                  <h3>Inactive Users</h3>
-                  <p className="stat-number">{mockUsers.filter((u) => u.status === "Inactive").length}</p>
-                </div>
-              </div>
               
-              {/* Users Table */}
-              <div className="table-container">
-                <table className="users-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Citizenship Number</th>
-                      <th>Payment Status</th>
-                      <th>Total Paid</th>
-                      <th>Pending</th>
-                      <th>Last Payment</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredUsers.map((user) => (
-                      <tr key={user.id} onClick={() => handleUserClick(user)} className="clickable-row">
-                        <td className="user-name">
-                          <div className="name-cell">
-                            <div className="user-avatar">
-                              {user.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")
-                                .substring(0, 2)}
-                            </div>
-                            <span>{user.name}</span>
-                          </div>
-                        </td>
-                        <td className="user-email">{user.email}</td>
-                        <td className="user-citizenship-number">{user.citizenshipNumber}</td>
-                        <td>
-                          <span className={getPaymentStatusBadge(user.paymentStatus)}>{user.paymentStatus}</span>
-                        </td>
-                        <td className="user-amount">NPR {user.totalPaid.toLocaleString()}</td>
-                        <td className="user-amount pending">
-                          {user.pendingAmount > 0 ? `NPR ${user.pendingAmount.toLocaleString()}` : "-"}
-                        </td>
-                        <td className="user-date">{user.lastPayment}</td>
-                        <td>
-                          <button className="action-button" title="More actions">
-                            <MoreIcon />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                {filteredUsers.length === 0 && (
-                  <div className="no-results">
-                    <p>No users found matching your criteria.</p>
+              {loading ? (
+                <div className="loading-container">
+                  <div className="loading-spinner"></div>
+                  <p>Loading users...</p>
+                </div>
+              ) : error ? (
+                <div className="error-container">
+                  <p>{error}</p>
+                  <button onClick={fetchUsers} className="retry-button">Retry</button>
+                </div>
+              ) : (
+                <>
+                  <div className="stats-grid">
+                    <div className="stat-card">
+                      <h3>Total Users</h3>
+                      <p className="stat-number">{users.length}</p>
+                    </div>
+                    <div className="stat-card">
+                      <h3>Active Users</h3>
+                      <p className="stat-number">{users.filter((u) => u.is_active).length}</p>
+                    </div>
+                    <div className="stat-card">
+                      <h3>Inactive Users</h3>
+                      <p className="stat-number">{users.filter((u) => !u.is_active).length}</p>
+                    </div>
+                    <div className="stat-card">
+                      <h3>New This Month</h3>
+                      <p className="stat-number">{users.filter((u) => {
+                        const userDate = new Date(u.createdAt);
+                        const now = new Date();
+                        return now.getTime() - userDate.getTime() <= 30 * 24 * 60 * 60 * 1000;
+                      }).length}</p>
+                    </div>
                   </div>
-                )}
-              </div>
+                  
+                  {/* Users Table */}
+                  <div className="table-container">
+                    <table className="users-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Citizenship Number</th>
+                          <th>PAN Number</th>
+                          <th>Address</th>
+                          <th>Status</th>
+                          <th>Registration Date</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredUsers.map((user) => (
+                          <tr key={user.id} onClick={() => handleUserClick(user)} className="clickable-row">
+                            <td className="user-name">
+                              <div className="name-cell">
+                                <div className="user-avatar">
+                                  {user.name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .substring(0, 2)}
+                                </div>
+                                <span>{user.name}</span>
+                              </div>
+                            </td>
+                            <td className="user-email">{user.email}</td>
+                            <td className="user-citizenship-number">{user.citizenshipNo}</td>
+                            <td className="user-pan-number">{user.panNumber}</td>
+                            <td className="user-address">{user.address}</td>
+                            <td>
+                              <span className={getStatusBadge(user.is_active)}>
+                                {user.is_active ? "Active" : "Inactive"}
+                              </span>
+                            </td>
+                            <td className="user-date">{formatDate(user.createdAt)}</td>
+                            <td>
+                              <button className="action-button" title="More actions">
+                                <MoreIcon />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {filteredUsers.length === 0 && (
+                      <div className="no-results">
+                        <p>No users found matching your criteria.</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </>
           )}
 
@@ -1169,7 +1088,7 @@ export default function Dashboard() {
                   <div className="sample-qr-codes">
                     <h4>Sample QR Codes:</h4>
                     <div className="sample-codes">
-                      {mockUsers.slice(0, 3).map((user) => (
+                      {users.slice(0, 3).map((user) => (
                         <button
                           key={user.id}
                           className="sample-code-button"
@@ -1317,7 +1236,7 @@ export default function Dashboard() {
                       <div className="payment-history">
                         <h4>Recent Payment History</h4>
                         <div className="payment-transactions">
-                          {qrScanResult.paymentHistory.map((payment) => (
+                          {qrScanResult.paymentHistory.map((payment: any) => (
                             <div key={payment.id} className="transaction-item">
                               <div className="transaction-icon">
                                 <div className={`transaction-status ${payment.status.toLowerCase()}`}>
@@ -1387,8 +1306,8 @@ export default function Dashboard() {
                     {/* User Services */}
                     <div className="user-services">
                       <h4>Services Used</h4>
-                      <div className="services-list">
-                        {qrScanResult.user.servicesUsed.map((service, index) => (
+                                              <div className="services-list">
+                          {qrScanResult.user.servicesUsed.map((service: string, index: number) => (
                           <div key={index} className="service-item">
                             <svg
                               width="16"
@@ -1468,28 +1387,48 @@ export default function Dashboard() {
                     </div>
                     <div className="detail-item">
                       <label>Citizenship Number</label>
-                      <span>{selectedUser.citizenshipNumber}</span>
+                      <span>{selectedUser.citizenshipNo}</span>
                     </div>
                     <div className="detail-item">
-                      <label>Role</label>
-                      <span>{selectedUser.role}</span>
+                      <label>Status</label>
+                      <span>{selectedUser.is_active ? "Active" : "Inactive"}</span>
                     </div>
                     <div className="detail-item">
                       <label>Registration Date</label>
-                      <span>{selectedUser.registeredDate}</span>
+                      <span>{selectedUser.createdAt}</span>
                     </div>
                     <div className="detail-item">
                       <label>Last Login</label>
-                      <span>{selectedUser.lastLogin}</span>
+                      <span>{selectedUser.updatedAt}</span>
                     </div>
-                    <div className="detail-item">
-                      <label>Services Accessed</label>
-                      <span>{selectedUser.servicesUsed.join(", ")}</span>
-                    </div>
-                    <div className="detail-item">
-                      <label>Documents Submitted</label>
-                      <span>3 Documents Verified</span>
-                    </div>
+                                          <div className="detail-item">
+                        <label>Father's Name</label>
+                        <span>{selectedUser.fatherName}</span>
+                      </div>
+                      <div className="detail-item">
+                        <label>Mother's Name</label>
+                        <span>{selectedUser.motherName}</span>
+                      </div>
+                      <div className="detail-item">
+                        <label>Date of Birth</label>
+                        <span>{formatDate(selectedUser.dob)}</span>
+                      </div>
+                      <div className="detail-item">
+                        <label>Issue Date</label>
+                        <span>{formatDate(selectedUser.issueDate)}</span>
+                      </div>
+                      <div className="detail-item">
+                        <label>PAN Number</label>
+                        <span>{selectedUser.panNumber}</span>
+                      </div>
+                      <div className="detail-item">
+                        <label>PAN Issue Date</label>
+                        <span>{formatDate(selectedUser.panIssueDate)}</span>
+                      </div>
+                      <div className="detail-item">
+                        <label>Address</label>
+                        <span>{selectedUser.address}</span>
+                      </div>
                   </div>
                 </div>
 
