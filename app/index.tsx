@@ -1,5 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StripeProvider } from '@stripe/stripe-react-native';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { router } from 'expo-router';
+import { jwtDecode } from 'jwt-decode';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -28,7 +32,53 @@ const images = [
   require('../assets/images/slide4.png'),
 ];
 
-export default function Welcome() {
+export default function AppEntry() {
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = await AsyncStorage.getItem('authToken');
+      const biometricEnabled = await AsyncStorage.getItem('biometricEnabled');
+      if (token) {
+        if (biometricEnabled === 'true') {
+          // Prompt for biometric authentication
+          const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Authenticate to access your account' });
+          if (result.success) {
+            try {
+              jwtDecode(token);
+              router.replace('/dashboard');
+            } catch (e) {
+              await AsyncStorage.removeItem('authToken');
+              router.replace('/login');
+            }
+          } else {
+            // Biometric failed or cancelled
+            await AsyncStorage.removeItem('authToken');
+            router.replace('/login');
+          }
+        } else {
+          try {
+            jwtDecode(token);
+            router.replace('/dashboard');
+          } catch (e) {
+            await AsyncStorage.removeItem('authToken');
+            router.replace('/login');
+          }
+        }
+      } else {
+        router.replace('/login');
+      }
+    };
+    checkAuth();
+  }, []);
+  // Always wrap in StripeProvider so Stripe is available
+  return (
+    <StripeProvider publishableKey="pk_test_51RjACqIMLXiijmKztKnXEh14EgVfpZSl1Iugvh2A2yaxTnN8DQ78PQAoUyRAliGMKtwhhlbV3QTK9BmaDaCZQZTJ00meeYcrHE">
+      {/* Optionally, a splash/loading component here */}
+      <></>
+    </StripeProvider>
+  );
+}
+
+function Welcome() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;

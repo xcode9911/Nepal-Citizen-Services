@@ -1,16 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  Alert,
-  Dimensions,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Alert,
+    Dimensions,
+    Platform,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
@@ -33,7 +32,7 @@ interface Certificate {
 }
 
 export default function DocumentsPage() {
-  const [activeTab, setActiveTab] = useState<'documents' | 'certificate'>('documents');
+  // Remove activeTab and all certificate logic
 
   const handleGoBack = () => {
     router.back();
@@ -69,16 +68,7 @@ export default function DocumentsPage() {
     );
   };
 
-  const handleCertificatePress = (certificate: Certificate) => {
-    Alert.alert(
-      certificate.title,
-      `${certificate.description}\n\nCertificate Number: ${certificate.certificateNumber}\nIssued by: ${certificate.issuer}\nIssue Date: ${certificate.issueDate}\nValid Until: ${certificate.validUntil}`,
-      [
-        { text: 'Close', style: 'cancel' },
-        { text: 'Download Certificate', onPress: () => Alert.alert('Download', 'Certificate download started!') }
-      ]
-    );
-  };
+  // Remove handleCertificatePress and certificateData
 
   const documents = [
     {
@@ -87,8 +77,6 @@ export default function DocumentsPage() {
       subtitle: 'Digital Identity Document',
       type: 'Citizen Card',
       status: 'Active',
-      issueDate: '2020-05-15',
-      expiryDate: 'Lifetime',
       icon: 'card',
       color: '#059669',
       onPress: handleCitizenCardPress,
@@ -99,26 +87,11 @@ export default function DocumentsPage() {
       subtitle: 'Tax Identification Number',
       type: 'PAN Card',
       status: 'Active',
-      issueDate: '2021-03-20',
-      expiryDate: 'Lifetime',
       icon: 'document-text',
       color: '#0ea5e9',
       onPress: handlePanCardPress,
     },
   ];
-
-  // Certificate data - Top Tax Payer
-  const certificateData: Certificate = {
-    id: 'top_tax_payer',
-    title: 'Top Tax Payer',
-    description: 'Awarded for being among the top 10% of tax payers in Nepal for the fiscal year 2023-24',
-    icon: 'trophy',
-    issueDate: '2024-01-15',
-    validUntil: '2025-01-14',
-    certificateNumber: 'NTP-2024-001234',
-    issuer: 'Government of Nepal - Ministry of Finance',
-    earned: true,
-  };
 
   const renderDocuments = () => (
     <View style={styles.documentsContainer}>
@@ -142,182 +115,25 @@ export default function DocumentsPage() {
             </View>
             <Ionicons name="chevron-forward" size={moderateScale(20)} color="#6b7280" />
           </View>
-
-          <View style={styles.documentDetails}>
-            <View style={styles.documentDetailItem}>
-              <Text style={styles.documentDetailLabel}>Issue Date</Text>
-              <Text style={styles.documentDetailValue}>{document.issueDate}</Text>
-            </View>
-            <View style={styles.documentDetailItem}>
-              <Text style={styles.documentDetailLabel}>Expiry Date</Text>
-              <Text style={styles.documentDetailValue}>{document.expiryDate}</Text>
-            </View>
-          </View>
-
-          <View style={styles.documentActions}>
-            <TouchableOpacity
-              style={styles.documentActionButton}
-              onPress={() => handleDownloadDocument(document.type)}
-            >
-              <Ionicons name="download-outline" size={moderateScale(16)} color="#059669" />
-              <Text style={styles.documentActionText}>Download</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.documentActionButton}
-              onPress={() => handleShareDocument(document.type)}
-            >
-              <Ionicons name="share-outline" size={moderateScale(16)} color="#059669" />
-              <Text style={styles.documentActionText}>Share</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.documentActionButton}>
-              <Ionicons name="qr-code-outline" size={moderateScale(16)} color="#059669" />
-              <Text style={styles.documentActionText}>QR Code</Text>
-            </TouchableOpacity>
-          </View>
         </TouchableOpacity>
       ))}
-
-      <View style={styles.addDocumentCard}>
-        <View style={styles.addDocumentContent}>
-          <View style={styles.addDocumentIcon}>
-            <Ionicons name="add" size={moderateScale(32)} color="#6b7280" />
-          </View>
-          <Text style={styles.addDocumentTitle}>Add New Document</Text>
-          <Text style={styles.addDocumentSubtitle}>
-            Upload additional documents for verification
-          </Text>
-        </View>
-      </View>
     </View>
   );
 
-  const renderCertificate = () => (
-    <View style={styles.certificateContainer}>
-      <Text style={styles.certificateHeaderTitle}>Your Certificate</Text>
-      <Text style={styles.certificateHeaderSubtitle}>
-        Official recognition from Government of Nepal
-      </Text>
-      
-      <TouchableOpacity
-        style={styles.certificateCard}
-        onPress={() => handleCertificatePress(certificateData)}
-      >
-        <View style={styles.certificateHeader}>
-          <View style={styles.certificateIconContainer}>
-            <Ionicons name="ribbon" size={moderateScale(32)} color="#fbbf24" />
-          </View>
-          <View style={styles.certificateBadge}>
-            <Text style={styles.certificateBadgeText}>EARNED</Text>
-          </View>
-        </View>
-        
-        <View style={styles.certificateContent}>
-          <Text style={styles.certificateTitle}>{certificateData.title}</Text>
-          <Text style={styles.certificateDescription}>{certificateData.description}</Text>
-          
-          <View style={styles.certificateDetails}>
-            <View style={styles.certificateDetailRow}>
-              <Ionicons name="document-text" size={moderateScale(16)} color="#6b7280" />
-              <Text style={styles.certificateDetailText}>
-                Certificate No: {certificateData.certificateNumber}
-              </Text>
-            </View>
-            
-            <View style={styles.certificateDetailRow}>
-              <Ionicons name="calendar" size={moderateScale(16)} color="#6b7280" />
-              <Text style={styles.certificateDetailText}>
-                Issued: {certificateData.issueDate}
-              </Text>
-            </View>
-            
-            <View style={styles.certificateDetailRow}>
-              <Ionicons name="time" size={moderateScale(16)} color="#6b7280" />
-              <Text style={styles.certificateDetailText}>
-                Valid Until: {certificateData.validUntil}
-              </Text>
-            </View>
-            
-            <View style={styles.certificateDetailRow}>
-              <Ionicons name="business" size={moderateScale(16)} color="#6b7280" />
-              <Text style={styles.certificateDetailText}>
-                {certificateData.issuer}
-              </Text>
-            </View>
-          </View>
-        </View>
-        
-        <View style={styles.certificateActions}>
-          <View style={styles.certificateActionButton}>
-            <Ionicons name="download" size={moderateScale(16)} color="#059669" />
-            <Text style={styles.certificateActionText}>Download Certificate</Text>
-          </View>
-          <View style={styles.certificateActionButton}>
-            <Ionicons name="share" size={moderateScale(16)} color="#059669" />
-            <Text style={styles.certificateActionText}>Share</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </View>
-  );
+  // Remove renderCertificate and all certificate UI
 
   return (
     <View style={styles.container}>
-      <StatusBar 
-        barStyle="dark-content" 
-        backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined}
-        translucent={false}
-      />
-      
-      {/* Header */}
+      <StatusBar barStyle="dark-content" backgroundColor={Platform.OS === 'android' ? '#ffffff' : undefined} />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-          <Ionicons name="arrow-back" size={moderateScale(24)} color="#065f46" />
+        <TouchableOpacity onPress={handleGoBack}>
+          <Ionicons name="arrow-back" size={24} color="#059669" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Documents</Text>
-        <View style={styles.headerSpacer} />
+        <Text style={styles.headerTitle}>Documents</Text>
+        <View style={{ width: 24 }} />
       </View>
-
-      {/* Tab Switcher */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'documents' && styles.activeTab]}
-          onPress={() => setActiveTab('documents')}
-        >
-          <Ionicons 
-            name="document-text" 
-            size={moderateScale(20)} 
-            color={activeTab === 'documents' ? '#ffffff' : '#059669'} 
-          />
-          <Text style={[styles.tabText, activeTab === 'documents' && styles.activeTabText]}>
-            Documents
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'certificate' && styles.activeTab]}
-          onPress={() => setActiveTab('certificate')}
-        >
-          <Ionicons 
-            name="ribbon" 
-            size={moderateScale(20)} 
-            color={activeTab === 'certificate' ? '#ffffff' : '#059669'} 
-          />
-          <Text style={[styles.tabText, activeTab === 'certificate' && styles.activeTabText]}>
-            Certificate
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Content */}
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-        {activeTab === 'documents' ? renderDocuments() : renderCertificate()}
-        <View style={styles.bottomSpacing} />
-      </ScrollView>
+      {/* Only render documents, no tab switcher or certificates */}
+      {renderDocuments()}
     </View>
   );
 }

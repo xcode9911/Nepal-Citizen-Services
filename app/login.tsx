@@ -1,19 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as LocalAuthentication from 'expo-local-authentication';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  Dimensions,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    Dimensions,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { API_BASE_URL, API_ENDPOINTS } from '../constants/Config';
 
@@ -27,6 +29,33 @@ const moderateScale = (size: number, factor = 0.5) =>
 export default function Login() {
   const [citizenshipNumber, setCitizenshipNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const available = await LocalAuthentication.hasHardwareAsync();
+      setBiometricAvailable(available);
+      const enabled = await AsyncStorage.getItem('biometricEnabled');
+      setBiometricEnabled(enabled === 'true');
+    })();
+  }, []);
+
+  const handleBiometricLogin = async () => {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({ promptMessage: 'Login with Biometrics' });
+      if (result.success) {
+        const token = await AsyncStorage.getItem('authToken');
+        if (token) {
+          router.push('/dashboard');
+        } else {
+          Alert.alert('Error', 'No saved login found. Please login manually.');
+        }
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Biometric authentication failed.');
+    }
+  };
 
   const handleLogin = async () => {
     if (!citizenshipNumber || !email) {
@@ -140,6 +169,12 @@ export default function Login() {
                 autoCapitalize="none"
               />
             </View>
+
+            {biometricAvailable && biometricEnabled && (
+              <TouchableOpacity style={[styles.loginButton, { backgroundColor: '#065f46', marginBottom: 10 }]} onPress={handleBiometricLogin}>
+                <Text style={styles.loginButtonText}>Login with Biometrics</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
               <Text style={styles.loginButtonText}>Login</Text>
