@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { API_BASE_URL, API_ENDPOINTS } from '../constants/Config';
 
 const { width, height } = Dimensions.get('window');
 
@@ -25,14 +26,24 @@ const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size
 interface UserData {
   name: string;
   citizenshipNo: string;
+  salary?: string;
+}
+
+interface Payment {
+  id: string;
+  amount: number;
+  status: 'PENDING' | 'COMPLETED' | 'REJECTED';
+  createdAt: string;
 }
 
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
 
   useEffect(() => {
     loadUserData();
+    loadRecentPayments();
   }, []);
 
   const loadUserData = async () => {
@@ -43,11 +54,54 @@ export default function Dashboard() {
         setUserData({
           name: decoded.name || 'User',
           citizenshipNo: decoded.citizenshipNo || 'N/A',
+          salary: decoded.salary || 'N/A',
         });
       }
     } catch (error) {
       console.error('Error loading user data:', error);
     }
+  };
+
+  const loadRecentPayments = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      if (!token) return;
+      const decoded = jwtDecode(token) as any;
+      const userId = decoded.id || decoded.userId;
+      if (!userId) return;
+      const response = await fetch(`${API_BASE_URL}${API_ENDPOINTS.PAYMENTS}/user?userId=${userId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) return;
+      const paymentsData = await response.json();
+      setRecentPayments(paymentsData.slice(0, 3));
+    } catch (error) {
+      console.error('Error loading recent payments:', error);
+    }
+  };
+
+  // Tax calculation function based on the provided rules
+  const calculateTax = (salary: number): number => {
+    if (salary <= 500000) {
+      return salary * 0.01;
+    } else if (salary <= 700000) {
+      return 5000 + (salary - 500000) * 0.10;
+    } else if (salary <= 1000000) {
+      return 25000 + (salary - 700000) * 0.20;
+    } else if (salary <= 2000000) {
+      return 85000 + (salary - 1000000) * 0.30;
+    } else {
+      return 385000 + (salary - 2000000) * 0.36;
+    }
+  };
+
+  // Format currency
+  const formatCurrency = (amount: number): string => {
+    return `Rs. ${amount.toLocaleString('en-IN')}`;
   };
 
   const handleProfilePress = () => {
@@ -79,21 +133,11 @@ export default function Dashboard() {
     router.push('/paymenthistory');
   };
 
-  const handelLeaderboardPress = () => {
-    router.push('/leaderboard');
-  };
-
   const handleQuickAnalyticsPress = () => {
     router.push('/paymenthistory');
   };
 
   // Mock data
-  const recentPayments = [
-    { service: 'Vehicle Registration', amount: 'Rs. 2,500', date: '2024-01-15', status: 'Completed' },
-    { service: 'Citizenship Renewal', amount: 'Rs. 1,200', date: '2024-01-12', status: 'Pending' },
-    { service: 'License Fee', amount: 'Rs. 800', date: '2024-01-10', status: 'Completed' },
-  ];
-
   const leaderboardData = [
     { rank: 1, name: 'Ram Sharma', points: 2450 },
     { rank: 2, name: 'Sita Poudel', points: 2380 },
@@ -156,7 +200,7 @@ export default function Dashboard() {
               <Text style={styles.profileStatus}>✓ Verified Citizen</Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={moderateScale(20)} color="#6b7280" />
+         
         </TouchableOpacity>
 
         {/* QR Code */}
@@ -201,28 +245,40 @@ export default function Dashboard() {
             <Text style={styles.sectionTitle}>Recent Payments</Text>
             <Ionicons name="chevron-forward" size={moderateScale(20)} color="#6b7280" />
           </View>
-          {recentPayments.map((payment, index) => (
-            <View key={index} style={styles.paymentItem}>
-              <View style={styles.paymentInfo}>
-                <Text style={styles.paymentService}>{payment.service}</Text>
-                <Text style={styles.paymentDate}>{payment.date}</Text>
-              </View>
-              <View style={styles.paymentRight}>
-                <Text style={styles.paymentAmount}>{payment.amount}</Text>
-                <View style={[
-                  styles.paymentStatus,
-                  payment.status === 'Completed' ? styles.statusCompleted : styles.statusPending
-                ]}>
-                  <Text style={[
-                    styles.statusText,
-                    payment.status === 'Completed' ? styles.statusTextCompleted : styles.statusTextPending
+          {recentPayments.length > 0 ? (
+            recentPayments.map((payment, index) => (
+              <View key={payment.id} style={styles.paymentItem}>
+                <View style={styles.paymentInfo}>
+                  <Text style={styles.paymentService}>Tax Payment</Text>
+                  <Text style={styles.paymentDate}>{new Date(payment.createdAt).toLocaleDateString('en-IN')}</Text>
+                </View>
+                <View style={styles.paymentRight}>
+                  <Text style={styles.paymentAmount}>{formatCurrency(payment.amount)}</Text>
+                  <View style={[
+                    styles.paymentStatus,
+                    payment.status === 'COMPLETED'
+                      ? styles.statusCompleted
+                      : payment.status === 'PENDING'
+                      ? styles.statusPending
+                      : null
                   ]}>
-                    {payment.status}
-                  </Text>
+                    <Text style={[
+                      styles.statusText,
+                      payment.status === 'COMPLETED'
+                        ? styles.statusTextCompleted
+                        : payment.status === 'PENDING'
+                        ? styles.statusTextPending
+                        : styles.statusTextPending
+                    ]}>
+                      {payment.status}
+                    </Text>
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
+            ))
+          ) : (
+            <Text style={{ color: '#6b7280', textAlign: 'center', marginVertical: 8 }}>No recent payments found.</Text>
+          )}
           <View style={styles.viewAllContainer}>
             <Text style={styles.viewAllText}>Tap to view all payments</Text>
           </View>
@@ -236,37 +292,29 @@ export default function Dashboard() {
           </View>
           <View style={styles.analyticsContent}>
             <View style={styles.analyticsItem}>
-              <Text style={styles.analyticsLabel}>This Month</Text>
-              <Text style={styles.analyticsValue}>Rs. 4,500</Text>
-              <Text style={styles.analyticsChange}>+12% from last month</Text>
+              <Text style={styles.analyticsLabel}>Monthly Salary</Text>
+              <Text style={styles.analyticsValue}>
+                {userData?.salary && userData.salary !== 'N/A' 
+                  ? formatCurrency(parseFloat(userData.salary))
+                  : 'Not Available'
+                }
+              </Text>
+              <Text style={styles.analyticsChange}>Current month</Text>
             </View>
-            <View style={styles.analyticsChart}>
-              <View style={styles.chartBar} />
-              <View style={[styles.chartBar, { height: '60%' }]} />
-              <View style={[styles.chartBar, { height: '80%' }]} />
-              <View style={[styles.chartBar, { height: '40%' }]} />
-              <View style={styles.chartBar} />
+            <View style={styles.analyticsItem}>
+              <Text style={styles.analyticsLabel}>Predicted Tax</Text>
+              <Text style={styles.analyticsValue}>
+                {userData?.salary && userData.salary !== 'N/A' 
+                  ? formatCurrency(calculateTax(parseFloat(userData.salary)))
+                  : 'Not Available'
+                }
+              </Text>
+              <Text style={styles.analyticsChange}>Next month estimate</Text>
             </View>
           </View>
           <View style={styles.viewAllContainer}>
             <Text style={styles.viewAllText}>Tap to view detailed analytics</Text>
           </View>
-        </TouchableOpacity>
-
-        {/* Leaderboard Snapshot */}
-        <TouchableOpacity onPress={handelLeaderboardPress}>
-        <View style={styles.leaderboardCard}>
-          <Text style={styles.sectionTitle}>Community Leaderboard</Text>
-          {leaderboardData.map((user, index) => (
-            <View key={index} style={styles.leaderboardItem}>
-              <View style={styles.leaderboardLeft}>
-                <Text style={styles.leaderboardRank}>#{user.rank}</Text>
-                <Text style={styles.leaderboardName}>{user.name}</Text>
-              </View>
-              <Text style={styles.leaderboardPoints}>{user.points} pts</Text>
-            </View>
-          ))}
-        </View>
         </TouchableOpacity>
 
         <View style={styles.bottomSpacing} />
