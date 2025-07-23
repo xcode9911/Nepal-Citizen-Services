@@ -220,6 +220,26 @@ export const getNotifications = async (req: Request, res: Response) => {
   }
 };
 
+// update Notification
+export const updateNotification = async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const { isRead, isDeleted } = req.body;
+
+  try {
+    const updated = await prisma.notification.update({
+      where: { id },
+      data: {
+        ...(isRead !== undefined ? { isRead } : {}),
+        ...(isDeleted !== undefined ? { isDeleted } : {}),
+      },
+    });
+    return res.status(200).json(updated);
+  } catch (err) {
+    console.error('Error updating notification:', err);
+    return res.status(500).json({ message: 'Error updating notification', error: (err as Error).message });
+  }
+};
+
 // Update user salary
 export const updateSalary = async (req: Request, res: Response) => {
   const { userId, salary } = req.body;

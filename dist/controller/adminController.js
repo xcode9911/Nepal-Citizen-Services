@@ -8,16 +8,22 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getAllUsers = exports.verifyAdminOtp = exports.adminLogin = exports.createUser = void 0;
 const client_1 = require("@prisma/client");
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
 const prisma = new client_1.PrismaClient();
 // Utility to generate a random 10-digit citizenship number
 const generateUniqueCitizenshipNo = () => __awaiter(void 0, void 0, void 0, function* () {
     let unique = false;
     let generatedNo = '';
     while (!unique) {
-        generatedNo = Math.floor(1000000000 + Math.random() * 9000000000).toString(); // 10-digit number
+        generatedNo = Math.floor(1000000000 + Math.random() * 9000000000).toString();
         const existing = yield prisma.user.findUnique({
             where: { citizenshipNo: generatedNo },
         });
@@ -49,7 +55,6 @@ const generateUniquePanNumberNepal = () => __awaiter(void 0, void 0, void 0, fun
 // Create User
 const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { name, email, address, fatherName, motherName, dob, issueDate, panIssueDate, } = req.body;
-    // Validate inputs
     if (typeof name !== 'string' || typeof email !== 'string') {
         return res.status(400).json({ message: 'Invalid input types' });
     }
@@ -82,22 +87,29 @@ const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 exports.createUser = createUser;
-// Admin login
+// Admin login with JWT
 const adminLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
     try {
         const admin = yield prisma.admin.findUnique({
             where: { email },
         });
-        if (!admin) {
+        if (!admin || password !== admin.password) {
             return res.status(401).json({ message: 'Invalid email or password' });
         }
-        if (password !== admin.password) {
-            return res.status(401).json({ message: 'Invalid email or password' });
-        }
+        // Create JWT payload
+        const payload = {
+            id: admin.id,
+            email: admin.email,
+            role: 'admin',
+        };
+        const token = jsonwebtoken_1.default.sign(payload, process.env.JWT_SECRET, {
+            expiresIn: '2h', // Token expires in 2 hours
+        });
         return res.status(200).json({
             message: 'Login successful. Please verify OTP.',
             adminId: admin.id,
+            token,
         });
     }
     catch (error) {
@@ -135,10 +147,9 @@ const verifyAdminOtp = (req, res) => __awaiter(void 0, void 0, void 0, function*
 exports.verifyAdminOtp = verifyAdminOtp;
 // Get all users without ordering
 const getAllUsers = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    // Example: Logging the request
-    console.log('Fetching users for:', req.body); // You can log any relevant info
+    console.log('Fetching users for:', req.body);
     try {
-        const users = yield prisma.user.findMany(); // No orderBy
+        const users = yield prisma.user.findMany();
         return res.status(200).json(users);
     }
     catch (err) {

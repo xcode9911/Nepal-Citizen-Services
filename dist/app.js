@@ -16,6 +16,9 @@ const app = (0, express_1.default)();
 const httpServer = (0, http_1.createServer)(app);
 const io = (0, userController_1.setupWebSocket)(httpServer); // Initialize WebSocket
 app.use((0, cors_1.default)());
+// Raw body middleware for Stripe webhooks
+app.use('/api/payments/webhook', express_1.default.raw({ type: 'application/json' }));
+// JSON body middleware for all other routes
 app.use(express_1.default.json());
 // Middleware to attach io to request
 app.use((req, _res, next) => {

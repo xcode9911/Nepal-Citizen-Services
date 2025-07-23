@@ -19,6 +19,11 @@ interface CustomRequest extends Request {
 }
 
 app.use(cors());
+
+// Raw body middleware for Stripe webhooks
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
+
+// JSON body middleware for all other routes
 app.use(express.json());
 
 // Middleware to attach io to request

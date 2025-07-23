@@ -77,7 +77,8 @@ model Notification {
 model Payment {
   id              String   @id @default(uuid())
   amount          Float    // Payable amount, calculated from user's salary
-  esewaRefId      String   // eSewa transaction reference ID
+  stripePaymentIntentId String? // Stripe Payment Intent ID
+  stripeSessionId String? // Stripe Checkout Session ID
   status          PaymentStatus @default(PENDING)
   createdAt       DateTime @default(now())
   verifiedAt      DateTime?
@@ -97,5 +98,6 @@ enum PaymentStatus {
   PENDING
   VERIFIED
   REJECTED
+  COMPLETED
 }
 

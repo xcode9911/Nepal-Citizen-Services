@@ -9,7 +9,11 @@ const catchAsync_1 = __importDefault(require("../utils/catchAsync"));
 const router = express_1.default.Router();
 // User routes
 router.post('/create', (0, catchAsync_1.default)(paymentController_1.createPayment));
+router.post('/create-checkout-session', (0, catchAsync_1.default)(paymentController_1.createCheckoutSession));
+router.post('/confirm', (0, catchAsync_1.default)(paymentController_1.confirmPayment));
 router.get('/user', (0, catchAsync_1.default)(paymentController_1.getUserPayments));
+// Stripe webhook
+router.post('/webhook', (0, catchAsync_1.default)(paymentController_1.handleStripeWebhook));
 // Admin routes
 router.post('/verify', (0, catchAsync_1.default)(paymentController_1.verifyPayment));
 router.get('/all', (0, catchAsync_1.default)(paymentController_1.getAllPayments));
